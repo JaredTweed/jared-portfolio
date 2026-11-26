@@ -1,40 +1,43 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f1e6"><meta name="description" content="Explore Jared Tweed’s engineering projects in an interactive miniature world."><title>Jared Tweed — Field Atlas</title><link rel="stylesheet" href="./style.css"></head>
 <body>
-<header><a class="brand" href="./"><span class="mark">✳</span> FIELD ATLAS</a><nav aria-label="External profiles"><a href="https://github.com/JaredTweed">GitHub</a><a href="https://www.linkedin.com/in/jared-tweed/">LinkedIn</a><a class="contact" href="mailto:jaredtwe@gmail.com">Get in touch</a></nav></header>
+<a class="skip" href="#case-studies">Skip to selected work</a>
+<header><a class="brand" href="./"><span class="mark">✳</span> FIELD ATLAS</a><nav aria-label="Main navigation"><a href="#case-studies">Work</a><a href="./Jared-Tweed-Resume.pdf">Résumé</a><a class="contact" href="mailto:jaredtwe@gmail.com">Email</a></nav></header>
 <main>
-<section class="intro" aria-labelledby="title"><div><p class="eyebrow"><span></span> INTERACTIVE PORTFOLIO</p><h1 id="title">Jared Tweed</h1></div><p class="intro-copy">I’m an IoT and full-stack engineer in British Columbia. I build the firmware that reads weather instruments, the pipelines that carry their data, and the interfaces people use to make sense of it.</p></section>
-<nav class="featured-demos" aria-label="Featured demos"><a href="#cycling">Ride the cycle route</a><a href="#weather-reading">Follow a weather reading</a><a class="quiet-link" href="./Jared-Tweed-Resume.pdf">Résumé (PDF)</a></nav>
+<section class="intro" aria-labelledby="title">
+<div><p class="eyebrow">Engineering portfolio</p><h1 id="title">Jared Tweed</h1></div>
+<div class="intro-text"><p class="intro-copy">I build weather-station firmware, cycling maps, and software for sharing photographs.</p><p class="byline">IoT &amp; full-stack engineer · British Columbia</p></div>
+</section>
 <section class="atlas" aria-label="Interactive project atlas">
 <div class="map" id="map">
 <img id="island-preview" src="./island-preview.webp" width="968" height="610" fetchpriority="high" alt="Aerial view of the Field Atlas island and its project landmarks">
 <div id="stage" aria-hidden="true"></div>
-<div class="map-top"><span>PROJECT ISLAND</span><div class="map-modes"><button id="season" type="button" aria-label="Switch to winter" title="Switch to winter">❄</button><button id="light" type="button" aria-label="Switch to dusk" title="Switch to dusk">☼</button></div></div>
+<div class="map-top"><span>Project island</span><div class="map-modes"><button id="season" type="button" aria-label="Switch to winter" title="Switch to winter">❄</button><button id="light" type="button" aria-label="Switch to dusk" title="Switch to dusk">☼</button></div></div>
 <div id="pins"></div>
-<div class="map-bottom"><span id="map-help">Drag to orbit · Scroll to zoom</span><div class="map-actions"><button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button><button id="reset" title="Reset view" aria-label="Reset view">⟲</button></div></div>
+<div class="map-bottom"><span id="map-help">Drag to orbit</span><div class="map-actions"><button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button><button id="reset" title="Reset view" aria-label="Reset view">⟲</button></div></div>
 </div>
-<aside class="directory" aria-label="Project details and directory">
-<div class="directory-head"><p class="eyebrow" id="directory-label">FIELD GUIDE</p><h2 id="guide-title">Explore the island</h2><p id="guide-description">Start with the cycling ride, weather pipeline, or photo loader.</p></div>
-<div id="detail" hidden></div><div id="locations" aria-label="Locations"><div id="featured-locations"></div><details id="more-locations"><summary>More island projects</summary><div id="other-locations"></div></details></div>
+<aside class="directory overview" aria-label="Project details and directory">
+<div class="directory-head"><p class="eyebrow" id="directory-label">FIELD GUIDE</p><h2 id="guide-title">Explore the island</h2><p id="guide-description">Choose a project to visit its landmark and try the demo.</p></div>
+<noscript><p>The interactive island uses JavaScript. <a href="#case-studies">Read the project stories below.</a></p></noscript><div id="detail" hidden></div><div id="locations" aria-label="Locations"><div id="featured-locations"></div><details id="more-locations"><summary>More island projects</summary><div id="other-locations"></div></details></div>
 </aside></section>
-<section class="catalog" id="case-studies" aria-labelledby="cases-title">
-<p class="eyebrow">ENGINEERING CASE STUDIES</p><h2 id="cases-title">Three decisions, up close</h2>
-<div class="work-grid cases">
-<article><small>EMBEDDED TO CLOUD</small><h3>Peak HydroMet</h3><p class="case-role">I built the station firmware, data pipeline, and dashboard widgets as the sole developer.</p><p>The nRF52840 reads Davis station data over RS-485 and converts it to JSON before sending it by LoRaWAN or cellular. Downstream tools can work with one format for dashboards and anomaly detection.</p><button type="button" data-visit="weather">Open Weather Station</button></article>
-<article><small>OPEN MAP DATA</small><h3>Organic Maps</h3><p class="case-role">I authored the cycling classification and rendering proposal in PR #12692.</p><p>The proposal distinguishes shared lanes, painted lanes, and protected tracks while preserving each road’s classification. Side-aware data lets the renderer place those indicators where cyclists encounter them.</p><a href="#cycling-evidence">Compare the map screenshots</a><a href="https://github.com/organicmaps/organicmaps/pull/12692">Read Organic Maps PR #12692</a></article>
-<article><small>WEB PERFORMANCE</small><h3>SharedLens</h3><p class="case-role">I built the gallery and its viewport-prioritized thumbnail loader.</p><p>The gallery was used at five weddings with more than 100 guests. I capped thumbnail loading at four concurrent requests and prioritized photos near the viewport. Multipart S3 uploads report progress for large media files.</p><a href="#city">Try the loading queue</a><a href="https://sharedlens.ca">Visit SharedLens</a></article>
-</div></section>
-<section class="catalog" id="cycling-evidence" aria-labelledby="evidence-title">
-<p class="eyebrow">ORGANIC MAPS · PR #12692</p><h2 id="evidence-title">Cycling lines on a real map</h2>
-<p>The released cycling layer draws bike routes in purple. My PR makes three kinds of infrastructure visible at a glance, using dotted, dashed, and solid lines.</p>
-<div class="map-evidence">
-<figure><img src="./evidence/cycling-release.webp" width="540" height="710" loading="lazy" alt="Released Organic Maps cycling layer in downtown Vancouver with purple cycling overlays"><figcaption>Released cycling layer · 2026.11.11-39</figcaption></figure>
-<figure><div class="map-marked"><img src="./evidence/cycling-pr.webp" width="540" height="710" loading="lazy" alt="PR 12692 cycling layer in downtown Vancouver with dotted, dashed and solid blue cycling overlays"><span style="--x:32%;--y:23%" aria-hidden="true">1</span><span style="--x:74%;--y:73%" aria-hidden="true">2</span><span style="--x:15%;--y:49%" aria-hidden="true">3</span></div><figcaption>PR #12692 preview · 09bb2672</figcaption></figure>
-<div class="evidence-key"><strong>How to read the lines</strong><p><i class="pattern-dotted"></i> 1. Dotted · Shared travel lane</p><p><i class="pattern-dashed"></i> 2. Dashed · Painted bike lane</p><p><i></i> 3. Solid · Physically separated track</p><a href="https://github.com/organicmaps/organicmaps/pull/12692">Read the implementation in PR #12692</a></div>
-</div><p class="capture-note">Android Emulator captures at the same downtown Vancouver center and zoom. The release uses its downloadable regional map. The PR uses a Vancouver test map with the cycling data it needs. Map data © OpenStreetMap contributors.</p></section>
+<section class="catalog feature-story" id="case-studies" aria-labelledby="cases-title">
+<p class="eyebrow">Selected work</p><h2 id="cases-title">Organic Maps</h2>
+<div class="story-layout" id="cycling-evidence">
+<div class="story-copy"><h3>Cycling lines on a real map</h3>
+<p>A cyclist sharing a lane with cars has a different ride from one behind a curb. The released cycling layer shows routes in purple. My proposal gives each kind of infrastructure its own line and puts it on the corresponding side of the road.</p>
+<ul class="line-key"><li><i class="dotted"></i>Shared travel lane</li><li><i class="dashed"></i>Painted bike lane</li><li><i></i>Physically separated track</li></ul>
+<div class="story-links"><a href="#cycling">Ride the island route</a><a href="https://github.com/organicmaps/organicmaps/pull/12692">Read PR #12692</a></div></div>
+<div class="plates"><figure><figcaption>Released layer <small>2026.11.11-39</small></figcaption><a href="./evidence/cycling-release.webp" class="plate" aria-label="Enlarge released cycling layer"><img src="./evidence/cycling-release.webp" width="540" height="710" loading="lazy" alt="Downtown Vancouver with purple cycle routes on the released map"></a></figure>
+<figure><figcaption>Proposed layer <small>PR #12692</small></figcaption><a href="./evidence/cycling-pr.webp" class="plate" aria-label="Enlarge proposed cycling layer"><img src="./evidence/cycling-pr.webp" width="540" height="710" loading="lazy" alt="Same Vancouver streets with dotted, dashed and solid blue infrastructure markings"></a></figure>
+<p class="capture-note">Downtown Vancouver, at the same center and zoom in the Android Emulator. Release uses the regional download. PR build 09bb2672 uses a Vancouver test map. Map data © OpenStreetMap contributors.</p></div></div>
+</section>
+<section class="project-pair" aria-label="More featured projects">
+<article><p class="eyebrow">Environmental monitoring</p><h2>Peak HydroMet</h2><p>As sole developer, I built the station firmware, telemetry pipeline, and dashboard widgets. An nRF52840 reads Davis instruments over RS-485, then sends a common JSON format over LoRaWAN or cellular.</p><a href="#weather-reading">Follow a weather reading</a></article>
+<article><p class="eyebrow">Web performance</p><h2>SharedLens</h2><p>I built a photo and video gallery used at five weddings with more than 100 guests. Its loader prioritizes thumbnails near the viewport and limits requests to four at a time. Multipart S3 uploads report progress on large files.</p><a href="#city">Try the thumbnail loader</a></article></section>
 <details class="catalog secondary-work"><summary>More selected work</summary><div class="work-grid" id="work-list"></div></details>
 <details class="catalog secondary-work" id="open-source"><summary>More open-source contributions</summary><div class="record contribution-details"><div><h2>Contributions in the wild</h2><p>On Feeder, I added seekable read-aloud playback, article translation, and suggestions for discovering publications. My desktop contributions include clipboard behavior on GNOME, model organization in Newelle, and build tooling for whisper.cpp.</p><div class="sources" id="contributions"></div></div><div class="credentials"><h3>Additional tools I work with</h3><p>TypeScript, React, Angular, Express, Flask, Flutter, Dart, PostgreSQL, R, and LaTeX.</p><h3>Cloud &amp; developer tooling</h3><p>AWS Lambda, EC2, S3, API Gateway, IAM, EventBridge, Google Cloud, Firebase, Git, Postman, and Apache Maven.</p><h3>Teaching &amp; communication</h3><p>I’ve made <a href="https://w.wiki/9JKw">800 Wikipedia contributions</a>, primarily to mathematics articles, and spent years volunteering and working with elementary school children.</p></div></div></details>
 <div class="credentials-strip"><span><strong>Simon Fraser University</strong> · BSc Computer Science, Mathematics Minor</span><a href="https://www.coursera.org/account/accomplishments/verify/2CD48HHHQTQP">Stanford Machine Learning certificate</a><a href="./Jared-Tweed-Resume.pdf">Full résumé</a></div>
-<footer><span>JARED TWEED <span class="footer-sep">/</span> SOFTWARE &amp; SYSTEMS</span><span>BRITISH COLUMBIA, CANADA</span></footer>
+<footer class="site-footer"><div><span class="footer-name">Jared Tweed</span><a href="mailto:jaredtwe@gmail.com">jaredtwe@gmail.com</a></div><nav aria-label="Profiles and résumé"><a href="https://github.com/JaredTweed">GitHub</a><a href="https://www.linkedin.com/in/jared-tweed/">LinkedIn</a><a href="./Jared-Tweed-Resume.pdf">Résumé (PDF)</a></nav></footer>
 </main>
+<dialog id="map-viewer" aria-labelledby="viewer-title"><div class="viewer-bar"><h2 id="viewer-title"></h2><form method="dialog"><button autofocus>Close</button></form></div><img alt="" width="540" height="710"></dialog>
 <script type="module" src="./app.js"></script></body></html>

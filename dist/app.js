@@ -24,23 +24,23 @@ const projects = {
     demo:'Edge detection', action:'Apply Sobel filter', idle:'Synthetic test image', result:'Edges extracted with a 3 × 3 kernel'
   },
   weather: {
-    name:'Weather Station', short:'Weather Station', icon:'☀',
-    theme:'Environmental monitoring', section:'PEAK HYDROMET SOLUTIONS',
+    name:'Peak HydroMet', short:'Weather station', icon:'☀',
+    theme:'Trace a reading from sensor to screen', section:'WEATHER STATION',
     intro:'From weather instruments to usable data.',
     copy:'I wrote C++ firmware for Nordic nRF52840 devices that read binary data from Davis stations over RS-485 and transmit JSON over LoRaWAN or cellular. I built ThingsBoard widgets and an anomaly detector that uses historical readings and data from nearby stations.',
     demo:'Station readings', action:'Simulate a gust', idle:'Wind 12 km/h · 14.2 °C', result:'Wind 39 km/h · 14.2 °C', graph:true, effect:'gust'
   },
   city: {
-    name:'Software City', short:'Software City', icon:'▥',
-    theme:'Full-stack & desktop apps', section:'APPLICATION ENGINEERING',
-    intro:'Small tools that hold up under real workloads.',
-    copy:'SharedLens is a mobile-friendly photo and video gallery with direct uploads, WebP thumbnails, and a priority-based loader. Audio to Text Transcriber is a GTK4 app with batch transcription and memory-mapped search.',
-    links:[['SharedLens','https://sharedlens.ca'],['Gallery code','https://github.com/JaredTweed/wedding-photos'],['Transcriber code','https://github.com/JaredTweed/AudioToTextTranscriber']],
+    name:'SharedLens', short:'Software city', icon:'▥',
+    theme:'Watch a gallery load as you scroll', section:'SOFTWARE CITY',
+    intro:'A wedding gallery built for mobile browsing.',
+    copy:'I built SharedLens with S3 multipart uploads, Cognito, Firebase, and WebP thumbnails. Its loader fetches the nearest photos first, even when a guest scrolls to the other end of the gallery.',
+    links:[['SharedLens','https://sharedlens.ca'],['Gallery code','https://github.com/JaredTweed/wedding-photos']],
     demo:'Gallery loading queue', action:'Queue 9 photos', idle:'0 active · 0 waiting', effect:null
   },
   maps: {
-    name:'Road Network', short:'Road Network', icon:'⌘',
-    theme:'Organic Maps & cycle lanes', section:'OPEN SOURCE CARTOGRAPHY',
+    name:'Organic Maps', short:'Cycle route', icon:'┄',
+    theme:'Ride three kinds of cycle lane', section:'CYCLE ROUTE',
     intro:'Three street designs. Three map patterns.',
     copy:'My Organic Maps proposal distinguishes where cyclists share a lane, ride beside traffic in a painted lane, or have a physically separated track. The map uses dotted, dashed, and solid lines to show the difference.',
     links:[['Organic Maps PR #12692','https://github.com/organicmaps/organicmaps/pull/12692']],
@@ -96,8 +96,8 @@ const demoLinks = {cycling:'maps','weather-reading':'weather'};
 function readLocation(){
   const slug=location.hash.slice(1);
   const id=Object.hasOwn(demoLinks,slug)?demoLinks[slug]:slug;
-  if(Object.hasOwn(projects,id))select(id,null,{update:false,featured:Object.hasOwn(demoLinks,slug)});
-  else if(!slug && selected)select(null,null,{update:false});
+  if(Object.hasOwn(projects,id))select(id,null,{update:false,featured:true});
+  else if(selected)select(null,null,{update:false});
 }
 window.addEventListener('hashchange',readLocation);
 function select(id, invoker, {update=true,featured=false}={}){
@@ -121,16 +121,20 @@ function select(id, invoker, {update=true,featured=false}={}){
   locations.hidden=Boolean(id);
   detail.hidden=!id;
   byId('guide-description').hidden=Boolean(id);
+  document.querySelector('.directory').classList.toggle('overview', !id);
   byId('directory-label').textContent=id?projects[id].section:'FIELD GUIDE';
   const title=byId('guide-title');
   title.textContent=id?projects[id].name:'Explore the island';
   if(!id){
     if(invoker?.closest('#other-locations')) byId('more-locations').open=true;
-    if(invoker) invoker.focus({preventScroll:true});
+    if(invoker){
+      invoker.focus({preventScroll:true});
+      if(matchMedia('(max-width:690px)').matches) invoker.scrollIntoView({block:'nearest'});
+    }
     return;
   }
   const p=projects[id];
-  const back=button('All locations','back');
+  const back=button('All projects','back');
   back.addEventListener('click',()=>select(null,entries[id]));
   detail.append(back);
   const intro=document.createElement('p');
@@ -201,22 +205,6 @@ function select(id, invoker, {update=true,featured=false}={}){
     });
     demo.append(canvas);
   }
-  if(p.graph){
-    const chart=document.createElement('canvas');chart.width=280;chart.height=42;
-    chart.setAttribute('aria-hidden','true');chart.className='spark';
-    demo.append(chart);
-    const ctx=chart.getContext('2d');
-    const draw=gust=>{
-      ctx.clearRect(0,0,280,42);ctx.lineWidth=2;ctx.strokeStyle='#507a5e';
-      ctx.beginPath();
-      for(let x=0;x<280;x+=3){
-        const y=gust? 32-23*Math.exp(-((x-165)**2)/900)+Math.sin(x*.14)*2.3 : 28+Math.sin(x*.11)*3+Math.cos(x*.061)*2;
-        if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-      }
-      ctx.stroke();
-    };
-    draw(false);action.addEventListener('click',()=>draw(true));
-  }
   action.addEventListener('click',()=>{
       world?.demo(p.effect);
     if(runDemo){runDemo();return}
@@ -231,23 +219,18 @@ function select(id, invoker, {update=true,featured=false}={}){
     const queue=galleryQueue();
     stopGallery=queue.stop;
     detail.append(queue.panel);
+  }else if(id==='weather'){
+    detail.append(weatherWalkthrough(()=>world,button));
   }else{
-    if(id==='weather'){
-      const walkthrough=weatherWalkthrough(()=>world,button);
-      detail.append(walkthrough);
-      if(featured)walkthrough.querySelector('button').focus({preventScroll:true});
-    }
     detail.append(demo);
   }
   title.tabIndex=-1;
-  if(matchMedia('(max-width:690px)').matches && invoker?.classList.contains('pin')){
-    title.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-  }
-  if(featured){
-    const destination=id==='maps' && matchMedia('(max-width:690px)').matches ? detail.querySelector('.cycle-ride') : byId('map');
+  const narrow=matchMedia('(max-width:690px)').matches;
+  if(featured || narrow){
+    const destination=narrow ? (id==='maps' ? detail.querySelector('.cycle-ride') : title) : byId('map');
     destination.scrollIntoView({block:'start'});
-    detail.querySelector('.walkthrough button')?.focus({preventScroll:true});
-  }else title.focus({preventScroll:true});
+  }
+  title.focus({preventScroll:true});
 }
 async function initializeWorld(){
 try{
@@ -265,7 +248,7 @@ try{
   message.textContent='Explore all eight landmarks in the field guide.';
   byId('stage').append(message);
   byId('stage').removeAttribute('aria-hidden');
-  byId('map-help').textContent='Explore with the field guide';
+  byId('map-help').hidden=true;
   document.querySelector('.map-modes').hidden=true;
   document.querySelector('.map-actions').hidden=true;
 }
@@ -292,11 +275,10 @@ byId('season').addEventListener('click',()=>{
   world?.setWinter(winter);
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&selected)select(null,entries[selected]);
+  if(e.key==='Escape'&&selected&&!byId('map-viewer').open)select(null,entries[selected]);
 });
 const github='https://github.com/';
 const notebook=[
-  ['SharedLens','AWS S3 · Cognito · Firebase','Five weddings used the gallery, with 100+ guests. Multipart uploads handle large videos, while WebP thumbnails and a four-request loading queue keep mobile browsing responsive.','https://sharedlens.ca'],
   ['Real-time hand tracking','Computer vision · Stripe','777 active users in 45 countries used my browser-based hand-tracking app. I integrated payments and traffic analytics alongside the real-time interaction.','https://jaredtweed.github.io/hands'],
   ['Audio to Text Transcriber','GTK4 · whisper.cpp · Flatpak','Batch transcription with live progress, cancellation, and resume controls. Memory-mapped scanning keeps transcript search fast across thousands of files.',github+'JaredTweed/AudioToTextTranscriber'],
   ['Appointment scheduling','AWS Lambda · MongoDB · REST','I used Diophantine equations to evaluate appointment combinations and reduce gaps, alongside Google sign-in and persistent scheduling.','https://jaredtweed.github.io/tetrisbooking/'],
@@ -317,9 +299,29 @@ for(const [name,stack,description,url] of notebook){
 for(const [name,path] of [['Feeder','spacecowboy/Feeder/pull/1283'],['GNOME Clipboard Indicator','Tudmotu/gnome-shell-extension-clipboard-indicator/pull/534'],['Newelle','qwersyk/Newelle/pull/155'],['whisper.cpp','ggml-org/whisper.cpp/pull/3097'],['Microsoft Edit','microsoft/edit/pull/628'],['Actual Budget','actualbudget/actual/pull/4872'],['Organic Maps','organicmaps/organicmaps/pull/12692'],['Copyous','boerdereinar/copyous/pull/190'],['Aradia','JaredTweed/aradia']]){
   const a=document.createElement('a');a.href=github+path;a.textContent=name;byId('contributions').append(a);
 }
-for (const control of document.querySelectorAll('[data-visit]')) {
-  control.addEventListener('click', () => {
-    select(control.dataset.visit, control, {featured:true});
-    document.getElementById('map').scrollIntoView({block:'start'});
+// Reopen a demo when its hash is already active lower down the page.
+document.addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (link && link.hash === location.hash && !event.metaKey && !event.ctrlKey) {
+    const slug = link.hash.slice(1);
+    if (Object.hasOwn(projects, slug) || Object.hasOwn(demoLinks, slug)) {
+      event.preventDefault();
+      readLocation();
+    }
+  }
+});
+const viewer = byId('map-viewer');
+for (const link of document.querySelectorAll('.plate')) {
+  link.addEventListener('click', event => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || !viewer.showModal) return;
+    event.preventDefault();
+    byId('viewer-title').textContent = link.closest('figure').querySelector('figcaption').textContent;
+    const image = viewer.querySelector('img');
+    image.src = link.href;
+    image.alt = link.querySelector('img').alt;
+    viewer.showModal();
   });
 }
+viewer.addEventListener('click', event => {
+  if (event.target === viewer) viewer.close();
+});

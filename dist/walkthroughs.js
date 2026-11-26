@@ -168,15 +168,7 @@ export function cyclingRide(world, button) {
     previous=performance.now();frame=requestAnimationFrame(tick);
     play.textContent='Pause cycle ride';
   });
-  const timeline=document.createElement('div');
-  timeline.className='cycle-timeline';
-  for(const segment of cycleSegments){
-    const stop=button(segment.pattern,'timeline-stop');
-    stop.style.left=((segment.start+segment.end)*50)+'%';
-    stop.addEventListener('click',()=>{render((segment.start+segment.end)/2,true);pause()});
-    timeline.append(stop);
-  }
-  panel.append(play,map,scrubber,timeline,legend,description);
+  panel.append(play,map,scrubber,legend,description);
   render(0,false);
   return {panel, stop(){pause();inset.remove()}};
 }

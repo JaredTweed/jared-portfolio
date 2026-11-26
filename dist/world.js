@@ -743,7 +743,7 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
     tap=null;
     touches.delete(e.pointerId);drag=touches.values().next().value ?? null;
   });
-  surface.addEventListener('wheel',e=>{e.preventDefault();scale(Math.exp(T.MathUtils.clamp(e.deltaY,-85,85)*.0033))},{passive:false});
+  surface.addEventListener('wheel',e=>{if(!e.ctrlKey && !e.metaKey)return;e.preventDefault();scale(Math.exp(T.MathUtils.clamp(e.deltaY,-85,85)*.0033))},{passive:false});
   const projection=new T.Vector3();
   // Warm occupied rooms read individually against cooler reflected skylight.
   // Sky above and a darker land horizon give glazing and metal a reflection source.
@@ -807,7 +807,10 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
   renderer.shadowMap.autoUpdate=false;
   renderer.shadowMap.needsUpdate=true;
   let frameCount=0,sampleStart=performance.now();
+  let inView=true;
+  new IntersectionObserver(([entry]) => { inView=entry.isIntersecting; }).observe(surface);
   renderer.setAnimationLoop(now=>{
+    if(!inView || document.hidden){last=sampleStart=now;frameCount=0;return}
     // Adapt the 3D buffer independently of the full-resolution guide and map labels.
     if(++frameCount>=24){
       const elapsed=(now-sampleStart)/frameCount;
