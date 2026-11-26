@@ -452,6 +452,12 @@ export function makeWorld(stage, pins, onVisit) {
   for(const [x,z,w,h,d,c] of buildings){
     const y=platform(x,z,w+.29,d+.35,'#a9ac90');
     box(x,y+h/2,z,w,h,d,c);
+    const entrance=z+d/2;
+    box(x,y+.13,entrance+.021,w*.24,.26,.05,'#36534d');
+    box(x,y+.28,entrance+.079,w*.35,.037,.18,'#e6d1ac');
+    box(x,y+.018,entrance+.09,w*.35,.034,.18,'#b6aa92');
+    box(x+w*.27,y+.049,entrance+.055,w*.18,.10,.12,'#977e5a');
+    mesh(new T.IcosahedronGeometry(w*.10,0),'#577a4f',x+w*.27,y+.128,entrance+.055);
     box(x,y+h,z,w+.11,.13,d+.11,'#eee0bb');
     box(x+.11,y+h+.1,z-.09,w*.55,.17,d*.52,'#6b8176');
     for(let level=.31;level<h-.12;level+=.33){
@@ -577,6 +583,29 @@ export function makeWorld(stage, pins, onVisit) {
     light.position.set(x,y+.77,z);
     streetLights.push(light);scene.add(light);
     const glow=new T.Sprite(haloMaterial);glow.position.set(x,y+.85,z);glow.scale.setScalar(.84);scene.add(glow);
+  }
+  landmark=null;
+  const bridge=routes[1];
+  for(const u of [.091,.319]){
+    const p=bridge.getPointAt(u), d=bridge.getTangentAt(u);
+    for(const side of [-1,1]){
+      const x=p.x+side*d.z*.81, z=p.z-side*d.x*.81, y=roadHeight(bridge,u);
+      box(x,y+.14,z,.047,.28,.047,'#ddd3bb');
+      box(x,y+.23,z,.052,.07,.052,'#c6803e');
+    }
+  }
+  const bankRock=new T.DodecahedronGeometry(1);
+  for(const x of [-.5,.02,.48,2.67,3.03,3.55,4.1,4.4]){
+    for(const side of [-1,1]){
+      const z=stream(x)+side*(.54+random()*.13), y=ground(x,z);
+      const stone=mesh(bankRock,'#8d9385',x,y+.012,z);
+      stone.scale.set(.13+random()*.15,.08+random()*.07,.13+random()*.11);
+      stone.rotation.y=random()*6;
+      for(let i=0;i<3;i++){
+        const rx=x+i*.035, rz=z+side*.12, ry=ground(rx,rz);
+        beam(vec(rx,ry,rz),vec(rx+.035,ry+.20+random()*.16,rz+side*.065),.009,'#727c40');
+      }
+    }
   }
   const anchors={
     archive:vec(ax,ay+1.8,az), terminal:vec(hx,hy+1.68,hz),

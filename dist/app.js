@@ -1,4 +1,5 @@
 import { makeWorld } from './world.js';
+import {weatherWalkthrough, laneComparison} from './walkthroughs.js';
 
 const projects = {
   archive:{
@@ -213,6 +214,12 @@ function select(id, invoker){
   });
   demo.append(action);
   detail.append(demo);
+  if(id==='weather')detail.append(weatherWalkthrough(()=>world,button));
+  if(id==='maps'){
+    const comparison=laneComparison();
+    detail.append(comparison);
+    action.addEventListener('click',()=>{comparison.open=true});
+  }
   title.tabIndex=-1;
   if(matchMedia('(max-width:690px)').matches && invoker?.classList.contains('pin')){
     title.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
@@ -277,4 +284,10 @@ for(const [name,stack,description,url] of notebook){
 }
 for(const [name,path] of [['Feeder','spacecowboy/Feeder/pull/1283'],['GNOME Clipboard Indicator','Tudmotu/gnome-shell-extension-clipboard-indicator/pull/534'],['Newelle','qwersyk/Newelle/pull/155'],['whisper.cpp','ggml-org/whisper.cpp/pull/3097'],['Microsoft Edit','microsoft/edit/pull/628'],['Actual Budget','actualbudget/actual/pull/4872'],['Organic Maps','organicmaps/organicmaps/pull/12692'],['Copyous','boerdereinar/copyous/pull/190'],['Aradia','JaredTweed/aradia']]){
   const a=document.createElement('a');a.href=github+path;a.textContent=name;byId('contributions').append(a);
+}
+for (const control of document.querySelectorAll('[data-visit]')) {
+  control.addEventListener('click', () => {
+    select(control.dataset.visit, control);
+    document.getElementById('map').scrollIntoView({block:'start'});
+  });
 }
