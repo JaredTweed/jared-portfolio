@@ -1,7 +1,7 @@
 import {cycleSegments} from './cycle-route.js';
 import * as T from './three.module.min.js';
 
-export function makeWorld(stage, pins, onVisit) {
+export function makeWorld(stage, pins, onVisit, onFirstFrame) {
   const scene = new T.Scene();
   const renderer = new T.WebGLRenderer({ alpha:true, antialias:true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.65));
@@ -664,7 +664,7 @@ export function makeWorld(stage, pins, onVisit) {
   function go(id){
     selected=id;
     desired.copy(id ? focus[id] : vec(0,1.05,0));
-    zoom=id ? (id==='satellite'?9.5:id==='city'?13.7:12.4)*Math.max(1, .85/camera.aspect) : fit();
+    zoom=id ? (id==='satellite'?9.5:id==='city'?13.7:id==='weather'?8.7:12.4)*Math.max(1, .85/camera.aspect) : fit();
     if(!id){angle=.61;elevation=.68}
   }
   function scale(factor){zoom=T.MathUtils.clamp(zoom*factor,...zoomBounds)}
@@ -867,6 +867,7 @@ export function makeWorld(stage, pins, onVisit) {
       button.style.setProperty('--leader',Math.max(6,label.y-bottom+6)+'px');
     }
     renderer.render(scene,camera);
+    if(onFirstFrame){onFirstFrame();onFirstFrame=null}
   });
   function setWinter(value){
     terrainColor.array.set(value? winterColors:colors);
@@ -882,5 +883,5 @@ export function makeWorld(stage, pins, onVisit) {
   }
   return {go,scale,setWinter,setDusk:value=>{dusk=value},demo:value=>{behavior=value},
     cyclePoint:u=>routes[1].getPointAt(u),
-    showRide:u=>{if(behavior!=='route')zoom=6.8;behavior='route';rideProgress=u}};
+    showRide:u=>{if(behavior!=='route'){zoom=5.9;elevation=.51;angle=.71}behavior='route';rideProgress=u}};
 }

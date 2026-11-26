@@ -1,5 +1,5 @@
-import { makeWorld } from './world.js';
-import {weatherWalkthrough, cyclingRide} from './walkthroughs.js';
+
+import {weatherWalkthrough, cyclingRide, galleryQueue} from './walkthroughs.js';
 
 const projects = {
   archive:{
@@ -66,7 +66,7 @@ const locations = byId('locations');
 const detail = byId('detail');
 const pins = {};
 const entries = {};
-let world, selected, timer, dusk=false, winter=false;
+let world, selected, dusk=false, winter=false;
 function button(text, className) {
   const element = document.createElement('button');
   element.type='button'; element.className=className; element.textContent=text;
@@ -87,11 +87,25 @@ for(const [id,p] of Object.entries(projects)){
   pin.addEventListener('click',()=>select(id,pin));
   byId('pins').append(pin);pins[id]=pin;
 }
-let stopRide;
-function select(id, invoker){
+let stopRide, stopGallery;
+const demoLinks = {cycling:'maps','weather-reading':'weather'};
+function readLocation(){
+  const slug=location.hash.slice(1);
+  const id=Object.hasOwn(demoLinks,slug)?demoLinks[slug]:slug;
+  if(Object.hasOwn(projects,id))select(id,null,{update:false,featured:Object.hasOwn(demoLinks,slug)});
+  else if(!slug && selected)select(null,null,{update:false});
+}
+window.addEventListener('hashchange',readLocation);
+function select(id, invoker, {update=true,featured=false}={}){
+  if(update && (location.hash!==('#'+id) || !id)){
+    if(id || Object.hasOwn(projects,location.hash.slice(1)) || Object.hasOwn(demoLinks,location.hash.slice(1)))
+      history.pushState(null,'',id?'#'+id:location.pathname+location.search);
+  }
+  document.querySelector('.atlas').classList.toggle('ride-selected',id==='maps');
+  stopGallery?.();
+  stopGallery=null;
   stopRide?.();
   stopRide=null;
-  clearTimeout(timer);
   selected=id;
   world?.demo(null);
   world?.go(id);
@@ -199,50 +213,60 @@ function select(id, invoker){
     draw(false);action.addEventListener('click',()=>draw(true));
   }
   action.addEventListener('click',()=>{
-    clearTimeout(timer);
-    world?.demo(p.effect);
+      world?.demo(p.effect);
     if(runDemo){runDemo();return}
-    if(id==='city'){
-      let complete=0;
-      const tick=()=>{
-        const active=Math.min(4,9-complete);
-        output.textContent=`${active} active · ${9-complete-active} waiting · ${complete} complete`;
-        if(active){complete+=active;timer=setTimeout(tick,690)}
-      };
-      tick();
-    }else{
-      output.textContent=p.result;
-    }
+    output.textContent=p.result;
   });
   demo.append(action);
   if(id==='maps'){
     const ride=cyclingRide(()=>world,button);
     stopRide=ride.stop;
     detail.append(ride.panel);
+  }else if(id==='city'){
+    const queue=galleryQueue();
+    stopGallery=queue.stop;
+    detail.append(queue.panel);
   }else{
+    if(id==='weather'){
+      const walkthrough=weatherWalkthrough(()=>world,button);
+      detail.append(walkthrough);
+      if(featured)walkthrough.querySelector('button').focus({preventScroll:true});
+    }
     detail.append(demo);
-    if(id==='weather')detail.append(weatherWalkthrough(()=>world,button));
   }
   title.tabIndex=-1;
   if(matchMedia('(max-width:690px)').matches && invoker?.classList.contains('pin')){
     title.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
   }
-  title.focus({preventScroll:true});
+  if(featured){
+    const destination=id==='maps' && matchMedia('(max-width:690px)').matches ? detail.querySelector('.cycle-ride') : byId('map');
+    destination.scrollIntoView({block:'start'});
+    detail.querySelector('.walkthrough button')?.focus({preventScroll:true});
+  }else title.focus({preventScroll:true});
 }
+async function initializeWorld(){
 try{
-  world=makeWorld(byId('stage'),pins,id=>select(id,pins[id]));
+  const {makeWorld}=await import('./world.js');
+  world=makeWorld(byId('stage'),pins,id=>select(id,pins[id]),()=>{
+    byId('island-preview').hidden=true;
+    byId('map').classList.add('world-ready');
+  });
+  if(selected)world.go(selected);
 }catch(error){
   console.warn('Interactive map unavailable',error);
   byId('stage').replaceChildren();
   const message=document.createElement('div');
   message.className='fallback-note';
-  message.textContent='The 3D map requires WebGL. You can still explore all eight landmarks in the field guide.';
+  message.textContent='Explore all eight landmarks in the field guide.';
   byId('stage').append(message);
   byId('stage').removeAttribute('aria-hidden');
   byId('map-help').textContent='Explore with the field guide';
   document.querySelector('.map-modes').hidden=true;
   document.querySelector('.map-actions').hidden=true;
 }
+}
+readLocation();
+requestAnimationFrame(()=>requestAnimationFrame(initializeWorld));
 byId('zoom-in').addEventListener('click',()=>world?.scale(.78));
 byId('zoom-out').addEventListener('click',()=>world?.scale(1.28));
 byId('reset').addEventListener('click',()=>select(null));
@@ -290,7 +314,7 @@ for(const [name,path] of [['Feeder','spacecowboy/Feeder/pull/1283'],['GNOME Clip
 }
 for (const control of document.querySelectorAll('[data-visit]')) {
   control.addEventListener('click', () => {
-    select(control.dataset.visit, control);
+    select(control.dataset.visit, control, {featured:true});
     document.getElementById('map').scrollIntoView({block:'start'});
   });
 }

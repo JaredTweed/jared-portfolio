@@ -10,8 +10,8 @@ export function weatherWalkthrough(world, button) {
   // This teaching payload stores wind in tenths of a kilometre per hour.
   const wind = new DataView(bytes.buffer).getUint16(0) / 10;
   const steps = [
-    ['Instrument', 'Sample bytes  01 86', 'weather', 'gust'],
-    ['Firmware', JSON.stringify({wind_kmh: wind}), 'weather', 'gust'],
+    ['Instrument', 'Wind field  01 86 (hex)', 'weather', 'gust'],
+    ['Firmware', '0x0186 = 390 tenths ÷ 10 = 39 km/h · '+JSON.stringify({wind_kmh: wind}), 'weather', 'gust'],
     ['Telemetry', 'stations/demo/wind · ' + JSON.stringify({wind_kmh: wind}), 'tower', 'packet'],
     ['Dashboard', wind + ' km/h · Gust captured', 'city', null]
   ];
@@ -61,6 +61,10 @@ export function cyclingRide(world, button) {
   const description = document.createElement('output');
   const play = button('Start cycle ride', 'demo-action');
   const legend = document.createElement('div');
+  const scrubber = document.createElement('input');
+  scrubber.type='range';scrubber.min=0;scrubber.max=1000;scrubber.value=0;
+  scrubber.setAttribute('aria-label','Ride progress');
+  scrubber.addEventListener('input',()=>{render(Number(scrubber.value)/1000,true);pause()});
   legend.className = 'cycle-legend';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let progress = 0, frame = 0, previous = 0, active = null;
@@ -107,6 +111,8 @@ export function cyclingRide(world, button) {
   }
   function render(value, follow) {
     progress=value;
+    scrubber.value=Math.round(progress*1000);
+    scrubber.setAttribute('aria-valuetext',Math.round(progress*100)+'% · '+segmentAt(progress).name);
     const current=segmentAt(progress);
     if(follow){
       world()?.showRide(progress);
@@ -162,7 +168,85 @@ export function cyclingRide(world, button) {
     previous=performance.now();frame=requestAnimationFrame(tick);
     play.textContent='Pause cycle ride';
   });
-  panel.append(play,map,legend,description);
+  const timeline=document.createElement('div');
+  timeline.className='cycle-timeline';
+  for(const segment of cycleSegments){
+    const stop=button(segment.pattern,'timeline-stop');
+    stop.style.left=((segment.start+segment.end)*50)+'%';
+    stop.addEventListener('click',()=>{render((segment.start+segment.end)/2,true);pause()});
+    timeline.append(stop);
+  }
+  panel.append(play,map,scrubber,timeline,legend,description);
   render(0,false);
   return {panel, stop(){pause();inset.remove()}};
+}
+
+export function galleryQueue() {
+  const panel = document.createElement('section');
+  panel.className='walkthrough gallery-demo';
+  panel.innerHTML='<h3>Thumbnail loading queue</h3><p>Scroll the sample gallery to reprioritize thumbnails. Four slots are available, with a simulated request delay.</p>';
+  const status=document.createElement('output');
+  const grid=document.createElement('div');
+  grid.className='gallery-scroll';
+  grid.tabIndex=0;
+  grid.setAttribute('role','region');
+  grid.setAttribute('aria-label','Scrollable sample gallery');
+  const start=document.createElement('button');
+  start.type='button';
+  start.textContent='Start thumbnail loader';
+  const tiles=Array.from({length:12},(_,index)=>{
+    const tile=document.createElement('figure');
+    const image=document.createElement('img');
+    image.alt='Island detail '+(index+1);
+    image.width=180;
+    image.height=128;
+    image.hidden=true;
+    const label=document.createElement('figcaption');
+    label.textContent='Queued';
+    tile.append(image,label);
+    grid.append(tile);
+    return {tile,image,label,state:'waiting',index};
+  });
+  const timers=new Set();
+  let running=false, stopped=false;
+  function update(){
+    if(!running||stopped)return;
+    const center=grid.getBoundingClientRect().top+grid.clientHeight/2;
+    const waiting=tiles.filter(t=>t.state==='waiting').map(t=>{
+      const bounds=t.tile.getBoundingClientRect();
+      return {t,distance:Math.abs(bounds.top+bounds.height/2-center)};
+    }).sort((a,b)=>a.distance-b.distance);
+    const limit=4-tiles.filter(t=>t.state==='loading').length;
+    for(const {t} of waiting.slice(0,limit)){
+      t.state='loading';
+      t.label.textContent='Loading';
+      const timer=setTimeout(async ()=>{
+        timers.delete(timer);
+        t.image.src='./gallery/atlas-'+t.index+'.webp';
+        try{
+          await t.image.decode();
+          if(stopped)return;
+          t.image.hidden=false;
+          t.label.textContent='Loaded';
+        }catch{
+          if(stopped)return;
+          t.label.textContent='Unavailable';
+        }
+        t.state='done';
+        update();
+      },1200+t.index%3*550);
+      timers.add(timer);
+    }
+    status.textContent=['loading','waiting','done'].map(s=>tiles.filter(t=>t.state===s).length+' '+s).join(' · ');
+  }
+  start.addEventListener('click',()=>{
+    running=true;
+    start.hidden=true;
+    grid.focus({preventScroll:true});
+    update();
+  });
+  grid.addEventListener('scroll',update,{passive:true});
+  status.textContent='0 loading · 12 waiting';
+  panel.append(start,grid,status);
+  return {panel,stop(){stopped=true;for(const timer of timers)clearTimeout(timer)}};
 }
