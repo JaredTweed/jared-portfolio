@@ -20,7 +20,7 @@ const projects = {
     name:'Vision Lab', short:'Vision Lab', icon:'◎', theme:'Machine learning & imaging', section:'COMPUTER VISION',
     intro:'From a NumPy convolutional network to real-time hand tracking.',
     copy:'My hand-tracking web app reached 777 active users in 45 countries. I also trained an airplane instance-segmentation model with Detectron2 and built a MATLAB panorama pipeline using Harris corners, RANSAC, and homographies.',
-    links:[['Try hand tracking','https://jaredtweed.github.io/hands'],['Segmentation code','https://github.com/JaredTweed/ComputerVision-pytorch-detectron2'],['Panorama code','https://github.com/JaredTweed/PanoramaMaker']],
+    links:[['Try hand tracking here','#hand-tracking'],['Segmentation code','https://github.com/JaredTweed/ComputerVision-pytorch-detectron2'],['Panorama code','https://github.com/JaredTweed/PanoramaMaker']],
     demo:'Edge detection', action:'Apply Sobel filter', idle:'Synthetic test image', result:'Edges extracted with a 3 × 3 kernel'
   },
   weather: {
@@ -279,7 +279,6 @@ document.addEventListener('keydown',e=>{
 });
 const github='https://github.com/';
 const notebook=[
-  ['Real-time hand tracking','Computer vision · Stripe','777 active users in 45 countries used my browser-based hand-tracking app. I integrated payments and traffic analytics alongside the real-time interaction.','https://jaredtweed.github.io/hands'],
   ['Audio to Text Transcriber','GTK4 · whisper.cpp · Flatpak','Batch transcription with live progress, cancellation, and resume controls. Memory-mapped scanning keeps transcript search fast across thousands of files.',github+'JaredTweed/AudioToTextTranscriber'],
   ['Appointment scheduling','AWS Lambda · MongoDB · REST','I used Diophantine equations to evaluate appointment combinations and reduce gaps, alongside Google sign-in and persistent scheduling.','https://jaredtweed.github.io/tetrisbooking/'],
   ['Question bank converter','Python · Regex · XML','Several professors used my tool to turn plain-text questions into XML quiz banks. Its editor catches formatting errors before export.',github+'JaredTweed/TextToQuestionBankConverter'],

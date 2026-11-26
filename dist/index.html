@@ -31,6 +31,20 @@
 <figure><figcaption>Proposed layer <small>PR #12692</small></figcaption><a href="./evidence/cycling-pr.webp" class="plate" aria-label="Enlarge proposed cycling layer"><img src="./evidence/cycling-pr.webp" width="540" height="710" loading="lazy" alt="Same Vancouver streets with dotted, dashed and solid blue infrastructure markings"></a></figure>
 <p class="capture-note">Downtown Vancouver, at the same center and zoom in the Android Emulator. Release uses the regional download. PR build 09bb2672 uses a Vancouver test map. Map data © OpenStreetMap contributors.</p></div></div>
 </section>
+<section class="catalog hand-project" id="hand-tracking" aria-labelledby="hands-title">
+<p class="eyebrow">Computer vision</p><h2 id="hands-title">Real-time hand tracking</h2>
+<div class="story-layout"><div class="story-copy"><h3>An alert at the lift of a hand</h3>
+<p>I built Hands to turn a webcam into a hands-in-view alert. It tracks 21 landmarks per hand, from the wrist to the fingertips. The original app reached 777 active users across 45 countries.</p>
+<p>Try detecting the hands in the sample, or start your camera and raise a hand. Lower it to build a hands-free streak. Video is processed on your device.</p>
+<div class="story-links"><a href="https://github.com/JaredTweed/hands">View source</a><a href="https://jaredtweed.github.io/hands/">Original app</a></div></div>
+<div class="hand-console">
+<div class="hand-stage"><img id="hand-photo" src="./hands/sample.webp" width="640" height="540" loading="lazy" alt="Sample photograph of a woman holding both hands in front of her"><video id="hand-video" autoplay muted playsinline hidden></video><canvas id="hand-overlay" aria-hidden="true"></canvas><span id="hand-feed" aria-live="polite">Sample photograph</span></div>
+<div class="hand-controls"><div class="hand-buttons"><button id="hand-start" type="button">Start camera</button><button id="hand-sample" type="button">Detect sample hands</button></div>
+<p role="status" id="hand-status">Camera off · Alert sound starts muted.</p>
+<div id="hand-session" hidden><strong>Hands-free streak <span id="hand-time">0:00</span></strong> <button type="button" id="hand-pause">Pause streak</button><progress id="hand-grace" max="1" value="1" aria-label="Grace period before streak resets"></progress></div>
+<details><summary>Sound &amp; streak records</summary><div class="hand-settings"><label for="hand-volume">Alert volume <span id="hand-volume-label">Muted</span></label><input id="hand-volume" type="range" min="0" max="100" value="0">
+<label for="hand-pitch">Pitch <span id="hand-pitch-label">440 Hz</span></label><input id="hand-pitch" type="range" min="100" max="2500" value="440">
+<p>Best hands-free streaks on this device</p><dl id="hand-records"></dl></div></details></div></div></div></section>
 <section class="project-pair" aria-label="More featured projects">
 <article><p class="eyebrow">Environmental monitoring</p><h2>Peak HydroMet</h2><p>As sole developer, I built the station firmware, telemetry pipeline, and dashboard widgets. An nRF52840 reads Davis instruments over RS-485, then sends a common JSON format over LoRaWAN or cellular.</p><a href="#weather-reading">Follow a weather reading</a></article>
 <article><p class="eyebrow">Web performance</p><h2>SharedLens</h2><p>I built a photo and video gallery used at five weddings with more than 100 guests. Its loader prioritizes thumbnails near the viewport and limits requests to four at a time. Multipart S3 uploads report progress on large files.</p><a href="#city">Try the thumbnail loader</a></article></section>
@@ -40,4 +54,4 @@
 <footer class="site-footer"><div><span class="footer-name">Jared Tweed</span><a href="mailto:jaredtwe@gmail.com">jaredtwe@gmail.com</a></div><nav aria-label="Profiles and résumé"><a href="https://github.com/JaredTweed">GitHub</a><a href="https://www.linkedin.com/in/jared-tweed/">LinkedIn</a><a href="./Jared-Tweed-Resume.pdf">Résumé (PDF)</a></nav></footer>
 </main>
 <dialog id="map-viewer" aria-labelledby="viewer-title"><div class="viewer-bar"><h2 id="viewer-title"></h2><form method="dialog"><button autofocus>Close</button></form></div><img alt="" width="540" height="710"></dialog>
-<script type="module" src="./app.js"></script></body></html>
+<script type="module" src="./app.js"></script><script type="module" src="./hands.js"></script></body></html>
