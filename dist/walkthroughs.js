@@ -145,7 +145,7 @@ export function cyclingRide(world, button) {
     play.textContent=progress===0?'Start cycle ride':progress===1?'Replay cycle ride':'Resume cycle ride';
   }
   function tick(now) {
-    render(Math.min(1,progress+Math.min(100,now-previous)/15500),true);
+    render(Math.min(1,progress+Math.max(0,Math.min(100,now-previous))/15500),true);
     previous=now;
     if(progress===1)pause();
     else frame=requestAnimationFrame(tick);
