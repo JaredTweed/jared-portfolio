@@ -1,6 +1,13 @@
 import { makeWorld } from './world.js';
 
 const projects = {
+  vision: {
+    name:'Vision Lab', short:'Vision Lab', icon:'◎', theme:'Machine learning & imaging', section:'COMPUTER VISION',
+    intro:'From a NumPy convolutional network to real-time hand tracking.',
+    copy:'My hand-tracking web app reached 777 active users in 45 countries. I also trained an airplane instance-segmentation model with Detectron2 and built a MATLAB panorama pipeline using Harris corners, RANSAC, and homographies.',
+    links:[['Try hand tracking','https://jaredtweed.github.io/hands'],['Segmentation code','https://github.com/JaredTweed/ComputerVision-pytorch-detectron2'],['Panorama code','https://github.com/JaredTweed/PanoramaMaker']],
+    demo:'Edge detection', action:'Apply Sobel filter', idle:'Synthetic test image', result:'Edges extracted with a 3 × 3 kernel'
+  },
   weather: {
     name:'Weather Station', short:'Weather Station', icon:'☀',
     theme:'Environmental monitoring', section:'PEAK HYDROMET SOLUTIONS',
@@ -108,6 +115,28 @@ function select(id, invoker){
   const output=document.createElement('output');output.textContent=p.idle;
   const action=button(p.action,'demo-action');
   demo.append(heading,output);
+  if(id==='vision'){
+    const canvas=document.createElement('canvas');
+    canvas.width=72; canvas.height=28; canvas.className='edge-demo';
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#365649';ctx.fillRect(0,0,72,28);
+    ctx.fillStyle='#dce8c8';ctx.fillRect(12,5,17,17);
+    ctx.beginPath();ctx.arc(51,13,9,0,Math.PI*2);ctx.fill();
+    const input=ctx.getImageData(0,0,72,28);
+    action.addEventListener('click',()=>{
+      const out=ctx.createImageData(72,28);
+      const pixel=(x,y)=>input.data[(y*72+x)*4];
+      for(let y=1;y<27;y++)for(let x=1;x<71;x++){
+        const gx=pixel(x+1,y-1)+2*pixel(x+1,y)+pixel(x+1,y+1)-pixel(x-1,y-1)-2*pixel(x-1,y)-pixel(x-1,y+1);
+        const gy=pixel(x-1,y+1)+2*pixel(x,y+1)+pixel(x+1,y+1)-pixel(x-1,y-1)-2*pixel(x,y-1)-pixel(x+1,y-1);
+        const index=(y*72+x)*4;
+        out.data.fill(Math.min(255,Math.hypot(gx,gy)),index,index+3);
+        out.data[index+3]=255;
+      }
+      ctx.putImageData(out,0,0);
+    });
+    demo.append(canvas);
+  }
   if(p.graph){
     const chart=document.createElement('canvas');chart.width=280;chart.height=42;
     chart.setAttribute('aria-hidden','true');chart.className='spark';
@@ -155,7 +184,7 @@ try{
   byId('stage').replaceChildren();
   const message=document.createElement('div');
   message.className='fallback-note';
-  message.textContent='The 3D map requires WebGL. You can still explore all five landmarks in the field guide.';
+  message.textContent='The 3D map requires WebGL. You can still explore all six landmarks in the field guide.';
   byId('stage').append(message);
   byId('stage').removeAttribute('aria-hidden');
   byId('map-help').textContent='Explore with the field guide';
@@ -184,3 +213,26 @@ byId('season').addEventListener('click',()=>{
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&selected)select(null,entries[selected]);
 });
+const github='https://github.com/';
+const notebook=[
+  ['SharedLens','AWS S3 · Cognito · Firebase','Five weddings used the gallery, with 100+ guests. Multipart uploads handle large videos, while WebP thumbnails and a four-request loading queue keep mobile browsing responsive.','https://sharedlens.ca'],
+  ['Real-time hand tracking','Computer vision · Stripe','777 active users in 45 countries used my browser-based hand-tracking app. I integrated payments and traffic analytics alongside the real-time interaction.','https://jaredtweed.github.io/hands'],
+  ['Audio to Text Transcriber','GTK4 · whisper.cpp · Flatpak','Batch transcription with live progress, cancellation, and resume controls. Memory-mapped scanning keeps transcript search fast across thousands of files.',github+'JaredTweed/AudioToTextTranscriber'],
+  ['Appointment scheduling','AWS Lambda · MongoDB · REST','I used Diophantine equations to evaluate appointment combinations and reduce gaps, alongside Google sign-in and persistent scheduling.','https://jaredtweed.github.io/tetrisbooking/'],
+  ['Question bank converter','Python · Regex · XML','Several professors used my tool to turn plain-text questions into XML quiz banks. Its editor catches formatting errors before export.',github+'JaredTweed/TextToQuestionBankConverter'],
+  ['Relational schema analyzer','Python · Database theory','Computes candidate keys, closures, and canonical covers. Checks normal forms through BCNF and tests decompositions for lossless joins and dependency preservation.',github+'JaredTweed/NormalForms-CanonicalCover'],
+  ['Digit recognition from scratch','NumPy · Neural networks','Implemented convolution, ReLU, max pooling, and backpropagation in NumPy. A separate PyTorch project handles real-time digit recognition.',github+'JaredTweed/MNIST-artificial-intelligence-numpy'],
+  ['Weekly Commits','Rust · COSMIC desktop','A desktop panel applet that tracks GitHub commits across the week. I built it in Rust for the COSMIC desktop environment.',github+'JaredTweed/weekly-commits'],
+  ['Mouse Mirage','Java · Swing · Maven','I led Java development and designed level progression, sound management, and navigation for the game.',github+'JaredTweed/MouseMirageGame']
+];
+for(const [name,stack,description,url] of notebook){
+  const card=document.createElement('article');
+  const title=document.createElement('h3'), link=document.createElement('a');
+  link.href=url;link.textContent=name;title.append(link);
+  const tech=document.createElement('small');tech.textContent=stack;
+  const body=document.createElement('p');body.textContent=description;
+  card.append(tech,title,body);byId('work-list').append(card);
+}
+for(const [name,path] of [['Feeder','spacecowboy/Feeder/pull/1283'],['GNOME Clipboard Indicator','Tudmotu/gnome-shell-extension-clipboard-indicator/pull/534'],['Newelle','qwersyk/Newelle/pull/155'],['whisper.cpp','ggml-org/whisper.cpp/pull/3097'],['Microsoft Edit','microsoft/edit/pull/628'],['Actual Budget','actualbudget/actual/pull/4872'],['Organic Maps','organicmaps/organicmaps/pull/12692'],['Copyous','boerdereinar/copyous/pull/190'],['Aradia','JaredTweed/aradia']]){
+  const a=document.createElement('a');a.href=github+path;a.textContent=name;byId('contributions').append(a);
+}

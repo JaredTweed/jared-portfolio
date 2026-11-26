@@ -24,7 +24,7 @@ export function makeWorld(stage, pins) {
   const vec = (x,y,z) => new T.Vector3(x,y,z);
   const rock = (x,z,cx,cz,width,h) => h*Math.exp(-((x-cx)**2+(z-cz)**2)/width);
   const stream = x => 1.25 + 1.1*Math.sin(x*.42);
-  const outline = a => 1 + .061*Math.sin(a*5+.2) + .045*Math.cos(a*8) + .039*Math.sin(a*3);
+  const outline = a => 1 + .34*Math.max(0,-Math.cos(a))**4 + .061*Math.sin(a*5+.2) + .045*Math.cos(a*8) + .039*Math.sin(a*3);
   const edge = (x,z) => Math.hypot(x/12,z/9)/outline(Math.atan2(z/9,x/12));
   function ground(x,z) {
     const rim = Math.min(1, Math.max(0,(1-edge(x,z))*5.5));
@@ -174,7 +174,7 @@ export function makeWorld(stage, pins) {
   const pines=[];
   const treeLower=new T.ConeGeometry(.63,1.4,7), treeUpper=new T.ConeGeometry(.46,1.24,7);
   const trunkGeometry=new T.CylinderGeometry(.065,.1,.51,5);
-  const blocked=[[-5.2,3.8,2],[5.2,-2.6,3.05],[-.6,5.25,1.65],[5,-5.6,1.45]];
+  const blocked=[[-11,-2.6,2.1],[-5.2,3.8,2],[5.2,-2.6,3.05],[-.6,5.25,1.65],[5,-5.6,1.45]];
   const roadSamples=routes.flatMap(route=>route.getSpacedPoints(40));
   for(let n=0;n<1200 && pines.length<205;n++){
     const x=(random()-.5)*24,z=(random()-.5)*18,y=ground(x,z);
@@ -304,7 +304,15 @@ export function makeWorld(stage, pins) {
     return {group,x,y,z,i};
   });
 
+  const labX=-11, labZ=-2.6, labY=platform(labX,labZ,2.85,2.1);
+  box(labX,labY+.49,labZ,2.25,.98,1.6,'#ca9870');
+  box(labX,labY+1,labZ,2.44,.12,1.76,'#e9dec6');
+  mesh(new T.SphereGeometry(.74,16,9,0,Math.PI*2,0,Math.PI/2),'#7fa9a5',labX-.35,labY+1.06,labZ);
+  beam(vec(labX-.35,labY+1.4,labZ),vec(labX-.12,labY+1.96,labZ+.65),.16,'#3a5962');
+  for(const dx of [-.69,-.22,.25,.72]) box(labX+dx,labY+.55,labZ+.81,.32,.38,.04,'#406768');
+  const labFocus=vec(labX,labY+.92,labZ);
   const anchors={
+    vision:vec(labX,labY+2.3,labZ),
     weather:vec(wx,wy+1.8,wz),
     city:vec(6,3.75,-3.6),
     maps:vec(3.85,ground(3.85,4.05)+.59,4.05),
@@ -312,6 +320,7 @@ export function makeWorld(stage, pins) {
     tower:vec(tx,ty+3.4,tz)
   };
   const focus={
+    vision:labFocus,
     weather:vec(wx,wy+.68,wz),
     city:vec(5.1,1.58,-3.05),
     maps:vec(1.75,.86,2.65),
