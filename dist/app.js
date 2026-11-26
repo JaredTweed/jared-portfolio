@@ -43,7 +43,7 @@ const projects = {
     theme:'Organic Maps & cycle lanes', section:'OPEN SOURCE CARTOGRAPHY',
     intro:'Three street designs. Three map patterns.',
     copy:'My Organic Maps proposal distinguishes where cyclists share a lane, ride beside traffic in a painted lane, or have a physically separated track. The map uses dotted, dashed, and solid lines to show the difference.',
-    links:[['Combined PR #12692','https://github.com/organicmaps/organicmaps/pull/12692'],['Cycleway classification','https://github.com/organicmaps/organicmaps/pull/14041'],['Side-aware cycling data','https://github.com/organicmaps/organicmaps/pull/14074']],
+    links:[['Organic Maps PR #12692','https://github.com/organicmaps/organicmaps/pull/12692']],
     demo:'Cross-island cycle ride', action:'Start cycle ride', idle:'North bank to south shore', result:'Cycling along the marked lane', effect:'route'
   },
   satellite: {
