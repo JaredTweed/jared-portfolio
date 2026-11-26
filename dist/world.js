@@ -1,3 +1,4 @@
+import {cycleSegments} from './cycle-route.js';
 import * as T from './three.module.min.js';
 
 export function makeWorld(stage, pins, onVisit) {
@@ -186,10 +187,10 @@ export function makeWorld(stage, pins, onVisit) {
     const length=Math.hypot(d.x,d.z)||1, nx=d.z/length*.64,nz=-d.x/length*.64;
     return Math.max(p.y,ground(p.x,p.z),ground(p.x+nx,p.z+nz),ground(p.x-nx,p.z-nz))+.042;
   }
-  function ribbon(path,width,color,offset=.045,lateral=0,road=false) {
+  function ribbon(path,width,color,offset=.045,lateral=0,road=false,start=0,end=1) {
     const vertices=[];
     for(let i=0;i<=160;i++){
-      const u=i/160;
+      const u=T.MathUtils.lerp(start,end,i/160);
       const p=path.getPointAt(u), d=path.getTangentAt(u);
       for(const sign of [-1,1]){
         const shift=(lateral+sign*width/2)/(Math.hypot(d.x,d.z)||1);
@@ -271,8 +272,22 @@ export function makeWorld(stage, pins, onVisit) {
     ribbon(r,1.36,'#afa890',0,0,true);
     ribbon(r,1.26,'#414c50',.014,0,true);
     for(const side of [-1,1]){
-      ribbon(r,.245,'#308b71',.022,side*.493,true);
-      ribbon(r,.028,'#ececd8',.031,side*.359,true);
+      const demoRoad=r===routes[1];
+      const laneStart=demoRoad?cycleSegments[1].start:0;
+      ribbon(r,.245,'#308b71',.022,side*.493,true,laneStart);
+      ribbon(r,.028,'#ececd8',.031,side*.359,true,laneStart,demoRoad?cycleSegments[2].start:1);
+      if(demoRoad){
+        const start=cycleSegments[2].start;
+        ribbon(r,.074,'#e2d8bf',.093,side*.344,true,start);
+        for(let i=0;i<43;i++){
+          const u=start+(1-start)*i/43,v=start+(1-start)*(i+1)/43;
+          const curbPoint=t=>{
+            const p=r.getPointAt(t),d=r.getTangentAt(t),n=Math.hypot(d.x,d.z);
+            return vec(p.x+side*d.z/n*.344,roadHeight(r,t)+.052,p.z-side*d.x/n*.344);
+          };
+          beam(curbPoint(u),curbPoint(v),.039,'#b2a990');
+        }
+      }
     }
     for(let i=1;i<Math.floor(r.getLength()/.55);i++){
       const p=r.getPointAt(i*.55/r.getLength()), d=r.getTangentAt(i*.55/r.getLength());
@@ -294,14 +309,15 @@ export function makeWorld(stage, pins, onVisit) {
   const stencilMap=new T.CanvasTexture(stencil);
   const marking=new T.MeshBasicMaterial({map:stencilMap,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
   const markingPlane=new T.PlaneGeometry(.32,.197);
-  for(const route of routes)for(const u of [.18,.52,.84])for(const side of [-1,1]){
+  for(const route of routes)for(const u of (route===routes[1]?[.065,.31,.66,.85]:[.18,.52,.84]))for(const side of [-1,1]){
     const p=route.getPointAt(u),d=route.getTangentAt(u),n=Math.hypot(d.x,d.z);
     const symbol=new T.Mesh(markingPlane,marking);
     const slope=(roadHeight(route,u+.003)-roadHeight(route,u-.003))/(.006*route.getLength());
     const along=vec(d.x/n,slope,d.z/n).multiplyScalar(-side).normalize();
     const across=vec(along.z,0,-along.x).normalize();
     symbol.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,across,along.clone().cross(across)));
-    symbol.position.set(p.x+side*d.z/n*.493,roadHeight(route,u)+.035,p.z-side*d.x/n*.493);
+    const lateral=route===routes[1]&&u<cycleSegments[1].start?.166:.493;
+    symbol.position.set(p.x+side*d.z/n*lateral,roadHeight(route,u)+.035,p.z-side*d.x/n*lateral);
     symbol.userData.landmark='maps';scene.add(symbol);
   }
   for(const side of [-1,1]){
@@ -750,7 +766,7 @@ export function makeWorld(stage, pins, onVisit) {
   groundAO.needsUpdate=true;
   const homeSun=new T.Color(0xffdeb4), duskSun=new T.Color(0xff9b6e);
   let blend=0, displayAngle=angle, displayElevation=elevation;
-  let last=performance.now(), time=0, routeStart=0;
+  let last=performance.now(), time=0, rideProgress=0;
   renderer.shadowMap.autoUpdate=false;
   renderer.shadowMap.needsUpdate=true;
   let frameCount=0,sampleStart=performance.now();
@@ -810,11 +826,12 @@ export function makeWorld(stage, pins, onVisit) {
     cyclists.forEach((bike,i)=>{
       const route=routes[i],guided=i===1&&behavior==='route';
       const phase=(time*.028+i*.41)%2;
-      const u=guided?T.MathUtils.clamp((now-routeStart)/8000,0,1):1-Math.abs(1-phase);
+      const u=guided?rideProgress:1-Math.abs(1-phase);
       const dir=guided||phase<=1?1:-1;
       const p=route.getPointAt(u),d=route.getTangentAt(u),horizontal=Math.hypot(d.x,d.z);
-      bike.position.set(p.x-dir*d.z/horizontal*.493,roadHeight(route,u)+.035,p.z+dir*d.x/horizontal*.493);
-      if(guided&&!reduced.matches){desired.copy(bike.position);desired.y+=.32}
+      const lateral=i===1?T.MathUtils.lerp(.166,.493,T.MathUtils.smoothstep(u,cycleSegments[1].start-.028,cycleSegments[1].start+.026)):.493;
+      bike.position.set(p.x-dir*d.z/horizontal*lateral,roadHeight(route,u)+.035,p.z+dir*d.x/horizontal*lateral);
+      if(guided){desired.copy(bike.position);desired.y+=.32}
       bike.rotation.y=-Math.atan2(d.z,d.x)+(dir<0?Math.PI:0);
       const ahead=Math.min(1,u+.004),behind=Math.max(0,u-.004);
       bike.rotation.z=dir*Math.atan2(roadHeight(route,ahead)-roadHeight(route,behind),(ahead-behind)*route.getLength());
@@ -863,5 +880,7 @@ export function makeWorld(stage, pins, onVisit) {
       mesh.instanceColor.needsUpdate=true;
     }
   }
-  return {go,scale,setWinter,setDusk:value=>{dusk=value},demo:value=>{behavior=value;if(value==='route'){routeStart=performance.now();zoom=8.4}}};
+  return {go,scale,setWinter,setDusk:value=>{dusk=value},demo:value=>{behavior=value},
+    cyclePoint:u=>routes[1].getPointAt(u),
+    showRide:u=>{if(behavior!=='route')zoom=6.8;behavior='route';rideProgress=u}};
 }

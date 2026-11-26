@@ -1,5 +1,5 @@
 import { makeWorld } from './world.js';
-import {weatherWalkthrough, laneComparison} from './walkthroughs.js';
+import {weatherWalkthrough, cyclingRide} from './walkthroughs.js';
 
 const projects = {
   archive:{
@@ -41,9 +41,9 @@ const projects = {
   maps: {
     name:'Road Network', short:'Road Network', icon:'⌘',
     theme:'Organic Maps & cycle lanes', section:'OPEN SOURCE CARTOGRAPHY',
-    intro:'Showing cyclists which side of a street has a lane.',
-    copy:'My Organic Maps work classifies cycle lanes, tracks, and shared lanes while preserving the underlying road type. I’ve also proposed storing which side of a street carries cycling infrastructure. On the island, cyclists ride the green lanes on either side of the road.',
-    links:[['Cycleway classification','https://github.com/organicmaps/organicmaps/pull/14041'],['Side-aware cycling data','https://github.com/organicmaps/organicmaps/pull/14074']],
+    intro:'Three street designs. Three map patterns.',
+    copy:'My Organic Maps proposal distinguishes where cyclists share a lane, ride beside traffic in a painted lane, or have a physically separated track. The map uses dotted, dashed, and solid lines to show the difference.',
+    links:[['Combined PR #12692','https://github.com/organicmaps/organicmaps/pull/12692'],['Cycleway classification','https://github.com/organicmaps/organicmaps/pull/14041'],['Side-aware cycling data','https://github.com/organicmaps/organicmaps/pull/14074']],
     demo:'Cross-island cycle ride', action:'Start cycle ride', idle:'North bank to south shore', result:'Cycling along the marked lane', effect:'route'
   },
   satellite: {
@@ -87,7 +87,10 @@ for(const [id,p] of Object.entries(projects)){
   pin.addEventListener('click',()=>select(id,pin));
   byId('pins').append(pin);pins[id]=pin;
 }
+let stopRide;
 function select(id, invoker){
+  stopRide?.();
+  stopRide=null;
   clearTimeout(timer);
   selected=id;
   world?.demo(null);
@@ -209,16 +212,16 @@ function select(id, invoker){
       tick();
     }else{
       output.textContent=p.result;
-      if(id==='maps')timer=setTimeout(()=>{output.textContent='Arrived · south shore'},8000);
     }
   });
   demo.append(action);
-  detail.append(demo);
-  if(id==='weather')detail.append(weatherWalkthrough(()=>world,button));
   if(id==='maps'){
-    const comparison=laneComparison();
-    detail.append(comparison);
-    action.addEventListener('click',()=>{comparison.open=true});
+    const ride=cyclingRide(()=>world,button);
+    stopRide=ride.stop;
+    detail.append(ride.panel);
+  }else{
+    detail.append(demo);
+    if(id==='weather')detail.append(weatherWalkthrough(()=>world,button));
   }
   title.tabIndex=-1;
   if(matchMedia('(max-width:690px)').matches && invoker?.classList.contains('pin')){
