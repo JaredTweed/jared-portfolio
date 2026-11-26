@@ -17,7 +17,23 @@ export function makeWorld(stage, pins, onVisit) {
   Object.assign(sun.shadow.camera,{left:-19,right:19,top:18,bottom:-18,far:56});
   sun.shadow.mapSize.set(1536,1536);
   sun.shadow.normalBias = .045;
+  sun.shadow.bias=-.00024;
+  sun.shadow.radius=2;
   scene.add(ambient,sun);
+  const sky=new T.Mesh(new T.SphereGeometry(100,24,16),new T.ShaderMaterial({
+    side:T.BackSide,depthWrite:false,uniforms:{dusk:{value:0}},
+    vertexShader:`varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec3 direction;uniform float dusk;
+    void main(){
+      vec3 dir=normalize(direction);
+      float h=smoothstep(-.06,.75,dir.y);
+      vec3 day=mix(vec3(.69,.82,.85),vec3(.23,.48,.72),h);
+      vec3 evening=mix(vec3(.54,.34,.32),vec3(.048,.087,.17),h);
+      gl_FragColor=vec4(mix(day,evening,dusk),1.);
+      #include <colorspace_fragment>
+    }`
+  }));
+  sky.renderOrder=-2;sky.raycast=()=>{};scene.add(sky);
 
   let seed = 443;
   const random = () => ((seed = (Math.imul(seed,1664525)+1013904223)>>>0) / 4294967296);
@@ -118,9 +134,9 @@ export function makeWorld(stage, pins, onVisit) {
 
   // A continuous water surface catches the sky and breaks into pale surf at the shore.
   const seaMaterial=new T.ShaderMaterial({
-    uniforms:{clock:{value:0},night:{value:0}},
+    uniforms:{clock:{value:0},night:{value:0},sunDirection:{value:new T.Vector3()}},
     vertexShader:`varying vec2 water; void main(){water=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader:`varying vec2 water;uniform float clock;uniform float night;
+    fragmentShader:`varying vec2 water;uniform float clock;uniform float night;uniform vec3 sunDirection;
     void main(){
       vec2 p=vec2(water.x,-water.y);float a=atan(p.y/9.,p.x/12.);
       float coast=1.+.34*pow(max(0.,-cos(a)),4.)+.061*sin(5.*a+.2)+.045*cos(8.*a)+.039*sin(3.*a);
@@ -135,6 +151,12 @@ export function makeWorld(stage, pins, onVisit) {
       color=mix(color,vec3(.74,.84,.70),foam*.78);
       color=mix(color,vec3(.58,.74,.71),smoothstep(15.,60.,length(p))*.8);
       color*=mix(vec3(1.),vec3(.29,.43,.58),night);
+      vec3 view=normalize(cameraPosition-vec3(p.x,-.83,p.y));
+      vec3 normal=normalize(vec3(.063*cos(p.x*3.2+p.y*5.4+clock*.85)+.029*chop,1.,.09*wave+.047*chop));
+      float fresnel=pow(1.-max(0.,dot(normal,view)),4.);
+      color=mix(color,mix(vec3(.65,.80,.84),vec3(.40,.29,.32),night),.54*fresnel);
+      float shine=pow(max(dot(normal,normalize(view+sunDirection)),0.),68.);
+      color+=mix(vec3(.74,.65,.42),vec3(.88,.39,.13),night)*shine;
       gl_FragColor=vec4(color,1.);
       #include <colorspace_fragment>
     }`
@@ -209,6 +231,19 @@ export function makeWorld(stage, pins, onVisit) {
     profiles.set(route,heights.map((v,i)=>
       (heights[Math.max(0,i-1)]+v*2+heights[Math.min(count,i+1)])/4
     ));
+  }
+  // Match the branch and the main road at the junction, including the turning area.
+  const junction=routes[1].getPointAt(0);
+  const mainSamples=routes[0].getSpacedPoints(160);
+  const meetingIndex=mainSamples.reduce((best,p,i)=>
+    p.distanceToSquared(junction)<mainSamples[best].distanceToSquared(junction)?i:best,0);
+  const junctionHeight=Math.max(profiles.get(routes[0])[meetingIndex],profiles.get(routes[1])[0]);
+  for(const [route,center,span] of [[routes[0],meetingIndex,15],[routes[1],0,22]]){
+    const heights=profiles.get(route);
+    for(let i=Math.max(0,center-span);i<=Math.min(160,center+span);i++){
+      const fade=T.MathUtils.smoothstep(Math.abs(i-center)/span,.46,1);
+      heights[i]=T.MathUtils.lerp(junctionHeight,heights[i],fade);
+    }
   }
   function roadHeight(route,u){
     const heights=profiles.get(route),index=T.MathUtils.clamp(u,0,1)*(heights.length-1);
@@ -450,7 +485,7 @@ export function makeWorld(stage, pins, onVisit) {
   const signals=[radioCurve,telemetry].map((curve,i)=>{
     const line=new T.Line(new T.BufferGeometry().setFromPoints(curve.getPoints(90)),new T.LineDashedMaterial({color:i?0xfff0aa:0xe5fcba,transparent:true,opacity:.54,dashSize:.16,gapSize:.14}));
     line.computeLineDistances();scene.add(line);
-    const dots=Array.from({length:5},()=>{const m=new T.Mesh(new T.IcosahedronGeometry(.10,1),new T.MeshBasicMaterial({color:i?0xffcf74:0xd7ffb7}));scene.add(m);return m});
+    const dots=Array.from({length:5},()=>{const m=new T.Mesh(new T.IcosahedronGeometry(.065,1),new T.MeshBasicMaterial({color:i?0xffcf74:0xd7ffb7}));scene.add(m);return m});
     return {curve,line,dots};
   });
   const cloudCanvas=document.createElement('canvas');
@@ -507,10 +542,14 @@ export function makeWorld(stage, pins, onVisit) {
   beam(vec(hx,hy+1.28,hz+.55),vec(hx+.12,hy+1.22,hz+.55),.021,'#354f43');
   ribbon(path([[6.1,4.82],[6.25,4.5],[6.53,3.84]]),.42,'#c4b58c',.08);
   ribbon(path([[-9,3.63],[-8,3.35],[-7,3.65],[-6.3,3.8]]),.37,'#c4b58c',.065);
+  const streetLights=[];
   for(const [x,z] of [[6.68,4.48],[7.25,4.39],[-8,3.09]]){
     const y=ground(x,z);
     beam(vec(x,y,z),vec(x,y+.83,z),.032,'#516553');
     mesh(new T.IcosahedronGeometry(.116,1),'#f3d39a',x,y+.85,z);
+    const light=new T.PointLight(0xffc48a,0,3.3,2);
+    light.position.set(x,y+.77,z);
+    streetLights.push(light);scene.add(light);
   }
   const anchors={
     archive:vec(ax,ay+1.8,az), terminal:vec(hx,hy+1.68,hz),
@@ -597,6 +636,61 @@ export function makeWorld(stage, pins, onVisit) {
   });
   surface.addEventListener('wheel',e=>{e.preventDefault();scale(Math.exp(T.MathUtils.clamp(e.deltaY,-85,85)*.0033))},{passive:false});
   const projection=new T.Vector3();
+  // Warm occupied rooms read individually against cooler reflected skylight.
+  // Sky above and a darker land horizon give glazing and metal a reflection source.
+  const skyProbe=document.createElement('canvas');
+  skyProbe.width=256;skyProbe.height=128;
+  const probeInk=skyProbe.getContext('2d');
+  const skyGradient=probeInk.createLinearGradient(0,0,0,128);
+  for(const [stop,color] of [[0,'#7faac9'],[.42,'#dfeaf0'],[.49,'#fce8c9'],[.54,'#758473'],[1,'#414c48']])
+    skyGradient.addColorStop(stop,color);
+  probeInk.fillStyle=skyGradient;probeInk.fillRect(0,0,256,128);
+  const skyMap=new T.CanvasTexture(skyProbe);
+  skyMap.mapping=T.EquirectangularReflectionMapping;skyMap.colorSpace=T.SRGBColorSpace;
+  scene.environment=skyMap;
+  for(const [key,metalness,roughness] of [['#d9ad68',.74,.36],['#d6c49c',.66,.36],['#365c72',.42,.19],['#7fa9a5',.54,.43],['#459f9b',.18,.21],['#66bfb2',.18,.23]]){
+    const surface=materials.get(key);
+    if(surface){surface.metalness=metalness;surface.roughness=roughness}
+  }
+  const siding=document.createElement('canvas');siding.width=128;siding.height=128;
+  const grain=siding.getContext('2d');
+  grain.fillStyle='#f8f6f0';grain.fillRect(0,0,128,128);
+  for(let row=0;row<8;row++){
+    grain.fillStyle='rgba(86,75,63,.19)';grain.fillRect(0,row*16,128,1);
+    for(let stroke=0;stroke<26;stroke++){
+      grain.fillStyle='rgba(117,92,72,.08)';
+      grain.fillRect(random()*128,row*16+random()*15,5+random()*47,.7);
+    }
+  }
+  const sidingMap=new T.CanvasTexture(siding);sidingMap.colorSpace=T.SRGBColorSpace;
+  for(const key of ['#936847','#d8b88a','#e9dbb6']){
+    const wall=materials.get(key);wall.map=sidingMap;wall.bumpMap=sidingMap;wall.bumpScale=.018;
+  }
+  const windowColors=['#416d6b','#4d7977','#7eaeae','#406768','#bed9c8','#598382'];
+  const glazing=new Set(windowColors.map(color=>materials.get(color)));
+  const interiorLights=[];
+  let windowNumber=0;
+  scene.traverse(object=>{
+    if(!object.isMesh||!glazing.has(object.material))return;
+    object.material.roughness=.3;
+    if(++windowNumber%5===0)return;
+    const original=object.material;
+    const group=windowNumber%3;
+    const key='room-'+original.uuid+'-'+group;
+    if(!materials.has(key)){
+      const glass=original.clone();
+      glass.emissive.set(['#ffc88a','#e6b680','#ffe2b3'][group]);
+      glass.emissiveIntensity=0;
+      interiorLights.push(glass);materials.set(key,glass);
+    }
+    object.material=materials.get(key);
+  });
+  const lampBulb=materials.get('#f3d39a');
+  lampBulb.emissive.set('#ffbc73');
+  const skyDay=new T.Color('#deebfa'),skyNight=new T.Color('#99abc9');
+  const cloudDay=new T.Color('#fffdf6'),cloudNight=new T.Color('#c4948c');
+  const dayPosition=vec(-16,17,7),eveningPosition=vec(-19,8,-9);
+  let lastShadowBlend=-1;
   const homeSun=new T.Color(0xffdfac), duskSun=new T.Color(0xff9b6e);
   let blend=0, displayAngle=angle, displayElevation=elevation;
   let last=performance.now(), time=0, routeStart=0;
@@ -615,7 +709,20 @@ export function makeWorld(stage, pins, onVisit) {
     camera.updateMatrixWorld();
     blend=T.MathUtils.lerp(blend,dusk?1:0,amount);
     sun.color.copy(homeSun).lerp(duskSun,blend);
-    sun.intensity=T.MathUtils.lerp(3.1,1.4,blend);
+    sun.position.lerpVectors(dayPosition,eveningPosition,blend);
+    if(Math.abs(blend-lastShadowBlend)>.055 || (Math.abs(blend-(dusk?1:0))<.001 && lastShadowBlend!==(dusk?1:0))){
+      renderer.shadowMap.needsUpdate=true;
+      lastShadowBlend=Math.abs(blend-(dusk?1:0))<.001?(dusk?1:0):blend;
+    }
+    sun.intensity=T.MathUtils.lerp(3.1,1.55,blend);
+    ambient.color.copy(skyDay).lerp(skyNight,blend);
+    scene.environmentIntensity=T.MathUtils.lerp(.38,.14,blend);
+    cloudMat.color.copy(cloudDay).lerp(cloudNight,blend);
+    sky.material.uniforms.dusk.value=blend;
+    seaMaterial.uniforms.sunDirection.value.copy(sun.position).normalize();
+    for(const glass of interiorLights)glass.emissiveIntensity=blend*1.35;
+    for(const light of streetLights)light.intensity=blend*3.2;
+    lampBulb.emissiveIntensity=blend*2;
     ambient.intensity=T.MathUtils.lerp(1.72,.92,blend);
     cup.rotation.y=time*(behavior==='gust'?8:2.4);
     satellite.position.y=6.6+Math.sin(time*.85)*.23;
