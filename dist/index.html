@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f1e6"><meta name="description" content="Explore Jared Tweed’s engineering projects in an interactive miniature world."><title>Jared Tweed — Field Atlas</title><link rel="stylesheet" href="./style.css"></head>
+<body>
+<header><a class="brand" href="./"><span class="mark">✳</span> FIELD ATLAS</a><nav aria-label="External profiles"><a href="https://github.com/JaredTweed">GitHub</a><a href="https://www.linkedin.com/in/jared-tweed/">LinkedIn</a><a class="contact" href="mailto:jaredtwe@gmail.com">Get in touch</a></nav></header>
+<main>
+<section class="intro" aria-labelledby="title"><div><p class="eyebrow"><span></span> INTERACTIVE PORTFOLIO</p><h1 id="title">Jared Tweed</h1></div><p class="intro-copy">I build software that connects the physical and digital worlds. Explore the island to see my work in environmental monitoring, full-stack engineering, and open source.</p></section>
+<section class="atlas" aria-label="Interactive project atlas">
+<div class="map" id="map">
+<div id="stage" aria-hidden="true"></div>
+<div class="map-top"><span>PROJECT ISLAND</span><div class="map-modes"><button id="season" type="button" aria-label="Switch to winter" title="Switch to winter">❄</button><button id="light" type="button" aria-label="Switch to dusk" title="Switch to dusk">☼</button></div></div>
+<div id="pins"></div>
+<div class="map-bottom"><span id="map-help">Drag to orbit · Scroll to zoom</span><div class="map-actions"><button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button><button id="reset" title="Reset view" aria-label="Reset view">⟲</button></div></div>
+</div>
+<aside class="directory" aria-label="Project details and directory">
+<div class="directory-head"><p class="eyebrow" id="directory-label">FIELD GUIDE</p><h2 id="guide-title">Explore the island</h2><p id="guide-description">Choose a landmark to fly in and explore the projects behind it.</p></div>
+<div id="detail" hidden></div><div id="locations" aria-label="Locations"></div>
+</aside></section>
+<footer><span>JARED TWEED <span class="footer-sep">/</span> SOFTWARE &amp; SYSTEMS</span><span>BRITISH COLUMBIA, CANADA</span></footer>
+</main>
+<script type="module" src="./app.js"></script></body></html>
