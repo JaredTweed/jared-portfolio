@@ -1,3 +1,4 @@
+import {addWaterfall} from './waterfall.js';
 import {cycleSegments} from './cycle-route.js';
 import * as T from './three.module.min.js';
 
@@ -226,8 +227,7 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
     const u=waterGeometry.attributes.uv.getX(i), across=waterGeometry.attributes.uv.getY(i)-.5;
     const p=river.getPointAt(u), direction=river.getTangentAt(u);
     const width=.98+.17*Math.sin(u*33)+.12*Math.cos(u*59)+.23*Math.exp(-((u-.67)**2)/.01);
-    const drop=T.MathUtils.smoothstep(u,.986,1);
-    waterPositions.setXYZ(i,p.x+direction.z*across*width+drop*.32,.338-drop*1.175,p.z-direction.x*across*width);
+    waterPositions.setXYZ(i,p.x+direction.z*across*width,.338,p.z-direction.x*across*width);
   }
   waterPositions.needsUpdate=true;
   waterGeometry.computeVertexNormals();
@@ -267,6 +267,9 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
   });
   const water=new T.Mesh(waterGeometry,waterMaterial);
   scene.add(water);
+  const mouth=river.getPointAt(1);
+  mouth.y=.338;
+  const updateWaterfall=addWaterfall(scene,mouth,river.getTangentAt(1),1.04);
 
   const routes=[
     path([[-9,-.3],[-6,-.9],[-3,-1.68],[0,-1.15],[2.7,-.65],[5,-.8],[8,-1.3]]),
@@ -846,6 +849,7 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
     satellite.position.y=6.6+Math.sin(time*.85)*.23;
     satellite.rotation.y=.25+Math.sin(time*.62)*.24;
     clouds.forEach(({group,x,y,z,i})=>group.position.set(x+Math.sin(time*.24+i)*.95,y+Math.cos(time*.26+i)*.13,z));
+    updateWaterfall(time,blend);
     waterMaterial.uniforms.time.value=time;
     waterMaterial.uniforms.night.value=blend;
     waterMaterial.uniforms.sunDirection.value.copy(seaMaterial.uniforms.sunDirection.value);
