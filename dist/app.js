@@ -39,11 +39,11 @@ const projects = {
   },
   maps: {
     name:'Road Network', short:'Road Network', icon:'⌘',
-    theme:'Organic Maps & routing', section:'OPEN SOURCE CARTOGRAPHY',
-    intro:'Offline navigation and open map data.',
-    copy:'I contribute to Organic Maps, an open-source navigation app built on OpenStreetMap data. Run the island’s sample route to follow a car across the river bridge.',
-    links:[['My Organic Maps contribution','https://github.com/organicmaps/organicmaps/pull/12692']],
-    demo:'Bridge route', action:'Start navigation', idle:'North bank to south shore', result:'Route active · crossing the river', effect:'route'
+    theme:'Organic Maps & cycle lanes', section:'OPEN SOURCE CARTOGRAPHY',
+    intro:'Showing cyclists which side of a street has a lane.',
+    copy:'My Organic Maps work classifies cycle lanes, tracks, and shared lanes while preserving the underlying road type. I’ve also proposed storing which side of a street carries cycling infrastructure. On the island, cyclists ride the green lanes on either side of the road.',
+    links:[['Cycleway classification','https://github.com/organicmaps/organicmaps/pull/14041'],['Side-aware cycling data','https://github.com/organicmaps/organicmaps/pull/14074']],
+    demo:'Cross-island cycle ride', action:'Start cycle ride', idle:'North bank to south shore', result:'Cycling along the marked lane', effect:'route'
   },
   satellite: {
     name:'Satellite', short:'Satellite', icon:'◇',

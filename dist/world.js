@@ -7,12 +7,12 @@ export function makeWorld(stage, pins, onVisit) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
+  renderer.toneMappingExposure = 1.04;
   stage.append(renderer.domElement);
   const camera = new T.PerspectiveCamera(36, 1, .1, 160);
-  const ambient = new T.HemisphereLight(0xf4f6dc, 0x648e75, 2.05);
+  const ambient = new T.HemisphereLight(0xe1edfb, 0x6d755a, 1.72);
   const sun = new T.DirectionalLight(0xffdfac, 3.1);
-  sun.position.set(-12, 20, 9);
+  sun.position.set(-16, 17, 7);
   sun.castShadow = true;
   Object.assign(sun.shadow.camera,{left:-19,right:19,top:18,bottom:-18,far:56});
   sun.shadow.mapSize.set(1536,1536);
@@ -82,8 +82,10 @@ export function makeWorld(stage, pins, onVisit) {
     verts.push(...a,...b,...c);
     const height=(a[1]+b[1]+c[1])/3;
     const slope=Math.max(a[1],b[1],c[1])-Math.min(a[1],b[1],c[1]);
-    const base=side ? soil[Math.floor(random()*soil.length)] : height>2.9 && slope>.15 ? '#8c947d' : height<.29 ? '#a0a574' : grassColors[Math.floor(random()*greens.length)];
-    const color=new T.Color(base).multiplyScalar(.91+random()*.19);
+    const mx=(a[0]+b[0]+c[0])/3,mz=(a[2]+b[2]+c[2])/3;
+    const patch=.5+.24*Math.sin(mx*.72+mz*.23)+.18*Math.cos(mz*1.2-mx*.31);
+    const base=side ? soil[Math.min(soil.length-1,Math.floor(patch*soil.length))] : height>2.9 && slope>.15 ? '#8c947d' : height<.29 ? '#a0a574' : grassColors[Math.min(greens.length-1,Math.floor(patch*greens.length))];
+    const color=new T.Color(base).multiplyScalar(.97+random()*.065);
     for(let n=0;n<3;n++) colors.push(color.r,color.g,color.b);
     const winter=side ? color : color.clone().lerp(frost,.64+T.MathUtils.clamp(height*.095,0,.28));
     for(let n=0;n<3;n++) winterColors.push(winter.r,winter.g,winter.b);
@@ -101,8 +103,11 @@ export function makeWorld(stage, pins, onVisit) {
     if(r) face(grid[r][i],grid[r][j],grid[r+1][j]);
   }
   const rim=grid[rings];
-  const shelf=rim.map(([x,,z],i)=>[x*.989,-.63+.14*Math.sin(i*.3),z*.989]);
-  const floor=rim.map(([x,,z],i)=>[x*.945,-1.65+.15*Math.sin(i*.22),z*.945]);
+  const shelf=rim.map(([x,,z],i)=>{
+    const apron=1.019+.017*Math.sin(i*.24);
+    return [x*apron,-.63+.14*Math.sin(i*.3),z*apron];
+  });
+  const floor=rim.map(([x,,z],i)=>[x*1.045,-1.65+.15*Math.sin(i*.22),z*1.045]);
   for(let i=0;i<sides;i++) {
     const j=(i+1)%sides;
     face(rim[i],rim[j],shelf[i],true);face(shelf[i],rim[j],shelf[j],true);
@@ -111,14 +116,46 @@ export function makeWorld(stage, pins, onVisit) {
   }
   const terrainColor=triangleMesh(verts,colors);
 
-  function ribbon(path,width,color,offset=.045) {
+  // A continuous water surface catches the sky and breaks into pale surf at the shore.
+  const seaMaterial=new T.ShaderMaterial({
+    uniforms:{clock:{value:0},night:{value:0}},
+    vertexShader:`varying vec2 water; void main(){water=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec2 water;uniform float clock;uniform float night;
+    void main(){
+      vec2 p=vec2(water.x,-water.y);float a=atan(p.y/9.,p.x/12.);
+      float coast=1.+.34*pow(max(0.,-cos(a)),4.)+.061*sin(5.*a+.2)+.045*cos(8.*a)+.039*sin(3.*a);
+      float d=length(p/vec2(12.,9.))/coast-1.;
+      float wave=sin(p.x*3.2+p.y*5.4+sin(p.x*1.1-clock*.4)+clock*.85);
+      float chop=sin(p.y*9.-p.x*.8+clock*.66+1.4*sin(p.x*2.+sin(p.y*.84))+2.1*sin(p.y*.72+p.x*.44));
+      vec3 color=mix(vec3(.065,.24,.27),vec3(.23,.49,.44),exp(-max(0.,d)*3.8));
+      color+=.024*wave+.012*chop;
+      float crest=smoothstep(1.3,1.83,wave+chop);
+      color+=vec3(.095,.085,.062)*crest*exp(-length(p)*.035);
+      float foam=1.-smoothstep(.008,.025,abs(d-.046-.009*wave));
+      color=mix(color,vec3(.74,.84,.70),foam*.78);
+      color=mix(color,vec3(.58,.74,.71),smoothstep(15.,60.,length(p))*.8);
+      color*=mix(vec3(1.),vec3(.29,.43,.58),night);
+      gl_FragColor=vec4(color,1.);
+      #include <colorspace_fragment>
+    }`
+  });
+  const sea=new T.Mesh(new T.PlaneGeometry(230,230),seaMaterial);
+  sea.rotation.x=-Math.PI/2;sea.position.y=-.83;scene.add(sea);
+
+  function rawRoadHeight(route,u){
+    const p=route.getPointAt(u),d=route.getTangentAt(u);
+    const length=Math.hypot(d.x,d.z)||1, nx=d.z/length*.64,nz=-d.x/length*.64;
+    return Math.max(p.y,ground(p.x,p.z),ground(p.x+nx,p.z+nz),ground(p.x-nx,p.z-nz))+.042;
+  }
+  function ribbon(path,width,color,offset=.045,lateral=0,road=false) {
     const vertices=[];
     for(let i=0;i<=160;i++){
       const u=i/160;
       const p=path.getPointAt(u), d=path.getTangentAt(u);
       for(const sign of [-1,1]){
-        const x=p.x+sign*d.z*width/2,z=p.z-sign*d.x*width/2;
-        vertices.push(x,Math.max(p.y,ground(x,z))+offset,z);
+        const shift=(lateral+sign*width/2)/(Math.hypot(d.x,d.z)||1);
+        const x=p.x+d.z*shift,z=p.z-d.x*shift;
+        vertices.push(x,(road?roadHeight(path,u):Math.max(p.y,ground(x,z)))+offset,z);
       }
     }
     const indices=[];
@@ -162,20 +199,73 @@ export function makeWorld(stage, pins, onVisit) {
     path([[1.4,-1.15],[1.2,.1,.89],[1.2,1.8,.89],[1.55,3.3],[3.8,4.1],[7,3.7],[8.6,2.8]]),
     path([[8,-1.3],[8.2,-2.7],[7,-4.3],[5.4,-4.95]])
   ];
+  const profiles=new Map();
+  for(const route of routes){
+    const count=160, interval=route.getLength()/count;
+    const heights=Array.from({length:count+1},(_,i)=>rawRoadHeight(route,i/count));
+    // Raise the approaches gradually so the bridge deck meets both banks.
+    for(let i=1;i<=count;i++)heights[i]=Math.max(heights[i],heights[i-1]-interval*.22);
+    for(let i=count-1;i>=0;i--)heights[i]=Math.max(heights[i],heights[i+1]-interval*.22);
+    profiles.set(route,heights.map((v,i)=>
+      (heights[Math.max(0,i-1)]+v*2+heights[Math.min(count,i+1)])/4
+    ));
+  }
+  function roadHeight(route,u){
+    const heights=profiles.get(route),index=T.MathUtils.clamp(u,0,1)*(heights.length-1);
+    return T.MathUtils.lerp(heights[Math.floor(index)],heights[Math.ceil(index)],index%1);
+  }
   landmark='maps';
   routes.forEach(r=>{
-    ribbon(r,.86,'#c1b28a',.035);
-    ribbon(r,.67,'#555e57',.096);
+    ribbon(r,1.36,'#afa890',0,0,true);
+    ribbon(r,1.26,'#414c50',.014,0,true);
+    for(const side of [-1,1]){
+      ribbon(r,.245,'#308b71',.022,side*.493,true);
+      ribbon(r,.028,'#ececd8',.031,side*.359,true);
+    }
     for(let i=1;i<Math.floor(r.getLength()/.55);i++){
       const p=r.getPointAt(i*.55/r.getLength()), d=r.getTangentAt(i*.55/r.getLength());
-      const m=box(p.x,Math.max(p.y,ground(p.x,p.z))+.111,p.z,.24,.012,.036,'#e7dca8');
+      const m=box(p.x,roadHeight(r,i*.55/r.getLength())+.03,p.z,.24,.012,.036,'#e7dca8');
       m.rotation.y=-Math.atan2(d.z,d.x);
       m.castShadow=false;
     }
   });
-  for(const x of [.68,1.7]) {
-    beam(vec(x,.99,.27),vec(x,.99,2.1),.04,'#d3c39b');
-    for(const z of [.3,.86,1.46,2.06]) beam(vec(x,.49,z),vec(x,1,z),.043,'#ccb994');
+  const stencil=document.createElement('canvas');
+  stencil.width=128;stencil.height=80;
+  const paint=stencil.getContext('2d');
+  paint.strokeStyle='#fffcea';paint.lineWidth=6;paint.lineJoin='round';
+  for(const x of [24,95]){
+    paint.beginPath();paint.arc(x,52,18,0,Math.PI*2);paint.stroke();
+  }
+  paint.beginPath();paint.moveTo(24,52);paint.lineTo(44,24);paint.lineTo(59,52);
+  paint.closePath();paint.moveTo(59,52);paint.lineTo(81,24);paint.lineTo(44,24);
+  paint.moveTo(95,52);paint.lineTo(77,12);paint.lineTo(88,12);paint.stroke();
+  const stencilMap=new T.CanvasTexture(stencil);
+  const marking=new T.MeshBasicMaterial({map:stencilMap,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
+  const markingPlane=new T.PlaneGeometry(.32,.197);
+  for(const route of routes)for(const u of [.18,.52,.84])for(const side of [-1,1]){
+    const p=route.getPointAt(u),d=route.getTangentAt(u),n=Math.hypot(d.x,d.z);
+    const symbol=new T.Mesh(markingPlane,marking);
+    const slope=(roadHeight(route,u+.003)-roadHeight(route,u-.003))/(.006*route.getLength());
+    const along=vec(d.x/n,slope,d.z/n).multiplyScalar(-side).normalize();
+    const across=vec(along.z,0,-along.x).normalize();
+    symbol.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(along,across,along.clone().cross(across)));
+    symbol.position.set(p.x+side*d.z/n*.493,roadHeight(route,u)+.035,p.z-side*d.x/n*.493);
+    symbol.userData.landmark='maps';scene.add(symbol);
+  }
+  for(const side of [-1,1]){
+    let previous=null;
+    const route=routes[1];
+    for(let i=0;i<=12;i++){
+      const u=.115+i*.014,p=route.getPointAt(u),d=route.getTangentAt(u),n=Math.hypot(d.x,d.z);
+      const x=p.x+side*d.z/n*.71,z=p.z-side*d.x/n*.71,y=roadHeight(route,u);
+      const top=vec(x,y+.24,z);
+      if(previous){
+        beam(previous,top,.029,'#d6c9ac');
+        beam(previous.clone().add(vec(0,-.31,0)),top.clone().add(vec(0,-.31,0)),.072,'#887b68');
+      }
+      if(i%3===0)beam(vec(x,Math.min(y-.09,ground(x,z)),z),top,.04,'#a3987d');
+      previous=top;
+    }
   }
   const cars=routes.map((route,i)=>{
     const group=new T.Group();
@@ -187,17 +277,52 @@ export function makeWorld(stage, pins, onVisit) {
     return {route,group};
   });
 
+  const cyclists=routes.map((route,i)=>{
+    const bike=new T.Group();
+    const tire=new T.TorusGeometry(.092,.014,5,14);
+    for(const x of [-.16,.16])mesh(tire,'#283739',x,.097,0,bike);
+    const rear=vec(-.16,.097,0),front=vec(.16,.097,0),seat=vec(-.055,.246,0),pedal=vec(.015,.095,0);
+    const bar=vec(.099,.235,0);
+    for(const [a,b] of [[rear,seat],[seat,pedal],[rear,pedal],[pedal,bar],[bar,front],[seat,bar]])
+      beam(a,b,.014,'#da9646',bike);
+    beam(seat,vec(.031,.375,0),.053,['#c85230','#d79538','#ab4349'][i],bike);
+    mesh(new T.SphereGeometry(.051,9,7),'#f0dcb5',.047,.425,0,bike);
+    beam(vec(.025,.32,0),bar,.018,'#b88767',bike);
+    beam(seat,vec(.03,.17,.038),.023,'#354b53',bike);
+    beam(vec(.03,.17,.038),pedal,.018,'#354b53',bike);
+    bike.traverse(part=>{part.castShadow=false});
+    scene.add(bike);return bike;
+  });
+
   landmark=null;
   const trunk=material('#6e5740'), pineColors=['#285743','#3c6d4e','#487753','#679157','#346950'];
   const pines=[];
-  const treeLower=new T.ConeGeometry(.63,1.4,7), treeUpper=new T.ConeGeometry(.46,1.24,7);
+  function firCrown(radius,height){
+    const points=[];
+    for(let tier=0;tier<5;tier++){
+      const t=tier/5, skirt=radius*(1-t*.84), base=(t-.5)*height;
+      for(let j=0;j<16;j++){
+        const a=j*Math.PI/8+tier*.71,b=a+Math.PI/8;
+        const branch=(angle,k)=>{
+          const reach=skirt*(k%2?.68:1+.07*Math.cos(k+tier));
+          return [Math.cos(angle)*reach,base+(k%2?.075:-.04)*height,Math.sin(angle)*reach];
+        };
+        points.push(...branch(a,j),.015,Math.min(height*.54,base+.39*height),0,...branch(b,j+1)); // outward-facing needles
+
+      }
+    }
+    const geo=new T.BufferGeometry();
+    geo.setAttribute('position',new T.Float32BufferAttribute(points,3));
+    geo.computeVertexNormals();return geo;
+  }
+  const treeLower=firCrown(.61,1.42),treeUpper=firCrown(.40,1.17);
   const trunkGeometry=new T.CylinderGeometry(.065,.1,.51,5);
   const blocked=[[6.1,5.65,1.95],[-9,4.4,1.75],[-11,-2.6,2.1],[-5.2,3.8,2],[5.2,-2.6,3.05],[-.6,5.25,1.65],[5,-5.6,1.45]];
   const roadSamples=routes.flatMap(route=>route.getSpacedPoints(40));
   for(let n=0;n<1200 && pines.length<205;n++){
     const x=(random()-.5)*24,z=(random()-.5)*18,y=ground(x,z);
     if(edge(x,z)>.92||Math.abs(z-stream(x))<.92||y>2.67||blocked.some(([a,b,r])=>Math.hypot(x-a,z-b)<r))continue;
-    if(roadSamples.some(v=>Math.hypot(x-v.x,z-v.z)<.62))continue;
+    if(roadSamples.some(v=>Math.hypot(x-v.x,z-v.z)<.96))continue;
     if(pines.some(t=>Math.hypot(x-t.x,z-t.z)<.39)) continue;
     pines.push({x,y,z,s:.41+random()*.85,a:random()*6.28,c:new T.Color(pineColors[Math.floor(random()*pineColors.length)])});
   }
@@ -217,6 +342,19 @@ export function makeWorld(stage, pins, onVisit) {
     if(variation)winterFoliage.push([inst,offset>1?1.16:.9]);
   }
   const boulder=new T.DodecahedronGeometry(1);
+  const shoreStones=new T.InstancedMesh(boulder,material('#ffffff'),130);
+  const stonePalette=['#818780','#747c78','#99a198','#a29d8e'];
+  for(let i=0;i<shoreStones.count;i++){
+    const cluster=Math.floor(i/10),angle=cluster*2.39996+(random()-.5)*.24;
+    const radius=outline(angle)*(1.027+random()*.05);
+    const scale=.07+random()**2*.42;
+    dummy.position.set(12*radius*Math.cos(angle),-.78+scale*.16,9*radius*Math.sin(angle));
+    dummy.scale.set(scale*1.4,scale*.67,scale);
+    dummy.rotation.set(random()*.35,random()*6.28,random()*.23);
+    dummy.updateMatrix();shoreStones.setMatrixAt(i,dummy.matrix);
+    shoreStones.setColorAt(i,new T.Color(stonePalette[i%stonePalette.length]));
+  }
+  shoreStones.castShadow=true;shoreStones.receiveShadow=true;scene.add(shoreStones);
   for(let i=0;i<53;i++){
     const x=(random()-.5)*23,z=(random()-.5)*17,y=ground(x,z);
     if(edge(x,z)>.92||y<1.25||y>3.8||blocked.some(([a,b,r])=>Math.hypot(x-a,z-b)<r))continue;
@@ -315,16 +453,26 @@ export function makeWorld(stage, pins, onVisit) {
     const dots=Array.from({length:5},()=>{const m=new T.Mesh(new T.IcosahedronGeometry(.10,1),new T.MeshBasicMaterial({color:i?0xffcf74:0xd7ffb7}));scene.add(m);return m});
     return {curve,line,dots};
   });
-  const cloudGeo=new T.IcosahedronGeometry(1,2);
-  const clouds=[[-8,4.7,-6.2],[7.5,5.3,-7.5],[-9.7,3.2,3.8],[9,4,4.3]].map(([x,y,z],i)=>{
-    const group=new T.Group();
-    for(let j=0;j<5;j++){
-      const cloud=mesh(cloudGeo,'#dae8d9',(j-2)*.53,random()*.35,(random()-.5)*.4,group);
-      cloud.scale.set(.7+random()*.48,.31+random()*.32,.52+random()*.33);
-      cloud.castShadow=false;
-    }
-    scene.add(group);
-    return {group,x,y,z,i};
+  const cloudCanvas=document.createElement('canvas');
+  cloudCanvas.width=256;cloudCanvas.height=128;
+  const cloudInk=cloudCanvas.getContext('2d');
+  for(let i=0;i<140;i++){
+    const x=30+random()*196;
+    const envelope=Math.sin((x-30)/196*Math.PI);
+    const y=72-envelope*(8+random()*27)+random()*18;
+    const radius=11+random()*16;
+    const shade=Math.floor(219+(72-y)*.57);
+    const glow=cloudInk.createRadialGradient(x,y,0,x,y,radius);
+    glow.addColorStop(0,'rgba('+shade+','+(shade+3)+','+(shade+2)+',.34)');
+    glow.addColorStop(1,'rgba(247,249,245,0)');
+    cloudInk.fillStyle=glow;cloudInk.fillRect(x-radius,y-radius,radius*2,radius*2);
+  }
+  const cloudTexture=new T.CanvasTexture(cloudCanvas);
+  cloudTexture.colorSpace=T.SRGBColorSpace;
+  const cloudMat=new T.SpriteMaterial({map:cloudTexture,transparent:true,depthWrite:false});
+  const clouds=[[-8,5.25,-6.4],[7.5,6.1,-7.5],[-12,4.5,3.9],[10,5.3,5.9]].map(([x,y,z],i)=>{
+    const group=new T.Sprite(cloudMat);group.scale.set(4.2+i*.23,2.1+i*.115,1);
+    scene.add(group);return {group,x,y,z,i};
   });
 
   landmark='vision';
@@ -468,7 +616,7 @@ export function makeWorld(stage, pins, onVisit) {
     blend=T.MathUtils.lerp(blend,dusk?1:0,amount);
     sun.color.copy(homeSun).lerp(duskSun,blend);
     sun.intensity=T.MathUtils.lerp(3.1,1.4,blend);
-    ambient.intensity=T.MathUtils.lerp(2.05,.92,blend);
+    ambient.intensity=T.MathUtils.lerp(1.72,.92,blend);
     cup.rotation.y=time*(behavior==='gust'?8:2.4);
     satellite.position.y=6.6+Math.sin(time*.85)*.23;
     satellite.rotation.y=.25+Math.sin(time*.62)*.24;
@@ -478,13 +626,27 @@ export function makeWorld(stage, pins, onVisit) {
       m.position.set(p.x,.351,p.z+Math.sin(i*13)*.25);
     });
     cars.forEach(({route,group},i)=>{
-      const custom=i===1&&behavior==='route';
       const phase=(time*.045+i*.18)%2;
-      const progress=custom?T.MathUtils.clamp((now-routeStart)/8000,0,1):phase<=1?phase:2-phase;
+      const progress=phase<=1?phase:2-phase;
       const p=route.getPointAt(progress), d=route.getTangentAt(progress);
-      group.position.set(p.x,Math.max(p.y,ground(p.x,p.z))+.102,p.z);
-      group.rotation.y=-Math.atan2(d.z,d.x)+(phase>1&&!custom?Math.PI:0);
+      const heading=phase>1?-1:1;
+      group.position.set(p.x-heading*d.z*.16,roadHeight(route,progress)+.029,p.z+heading*d.x*.16);
+      group.rotation.y=-Math.atan2(d.z,d.x)+(phase>1?Math.PI:0);
     });
+    cyclists.forEach((bike,i)=>{
+      const route=routes[i],guided=i===1&&behavior==='route';
+      const phase=(time*.028+i*.41)%2;
+      const u=guided?T.MathUtils.clamp((now-routeStart)/8000,0,1):1-Math.abs(1-phase);
+      const dir=guided||phase<=1?1:-1;
+      const p=route.getPointAt(u),d=route.getTangentAt(u),horizontal=Math.hypot(d.x,d.z);
+      bike.position.set(p.x-dir*d.z/horizontal*.493,roadHeight(route,u)+.035,p.z+dir*d.x/horizontal*.493);
+      if(guided&&!reduced.matches){desired.copy(bike.position);desired.y+=.32}
+      bike.rotation.y=-Math.atan2(d.z,d.x)+(dir<0?Math.PI:0);
+      const ahead=Math.min(1,u+.004),behind=Math.max(0,u-.004);
+      bike.rotation.z=dir*Math.atan2(roadHeight(route,ahead)-roadHeight(route,behind),(ahead-behind)*route.getLength());
+    });
+    seaMaterial.uniforms.clock.value=time;
+    seaMaterial.uniforms.night.value=blend;
     signals.forEach(({curve,line,dots},i)=>{
       const active=behavior===(i===0?'radio':'packet');
       line.material.opacity=active?.94:.47;
@@ -497,7 +659,7 @@ export function makeWorld(stage, pins, onVisit) {
     for(const [id,button] of Object.entries(pins)){
       projection.copy(anchors[id]).project(camera);
       const x=(projection.x*.5+.5)*width,y=(.5-projection.y*.5)*height;
-      button.hidden=(selected!==null&&selected!==id)||projection.z>1||x<15||x>width-15||y<32||y>height-26;
+      button.hidden=(behavior==='route'&&id==='maps')||(selected!==null&&selected!==id)||projection.z>1||x<15||x>width-15||y<32||y>height-26;
       if(!button.hidden)visible.push({button,x,y,w:button.offsetWidth,h:button.offsetHeight});
     }
     const placed=[];
@@ -527,5 +689,5 @@ export function makeWorld(stage, pins, onVisit) {
       mesh.instanceColor.needsUpdate=true;
     }
   }
-  return {go,scale,setWinter,setDusk:value=>{dusk=value},demo:value=>{behavior=value;if(value==='route')routeStart=performance.now()}};
+  return {go,scale,setWinter,setDusk:value=>{dusk=value},demo:value=>{behavior=value;if(value==='route'){routeStart=performance.now();zoom=8.4}}};
 }
