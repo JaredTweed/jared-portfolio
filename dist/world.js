@@ -1,6 +1,6 @@
 import * as T from './three.module.min.js';
 
-export function makeWorld(stage, pins) {
+export function makeWorld(stage, pins, onVisit) {
   const scene = new T.Scene();
   const renderer = new T.WebGLRenderer({ alpha:true, antialias:true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.65));
@@ -38,9 +38,11 @@ export function makeWorld(stage, pins) {
   const flat = {flatShading:true};
   const material = (color, extra={}) => new T.MeshStandardMaterial({color,...flat,...extra});
   const materials = new Map();
+  let landmark=null;
   function mesh(geometry,color,x,y,z,parent=scene) {
     if (!materials.has(color)) materials.set(color, material(color));
     const m = new T.Mesh(geometry, materials.get(color));
+    m.userData.landmark=landmark;
     m.position.set(x,y,z);
     m.castShadow = true;
     m.receiveShadow = true;
@@ -131,7 +133,21 @@ export function makeWorld(stage, pins) {
     return m;
   }
   const path = points => new T.CatmullRomCurve3(points.map(([x,z,y=0])=>vec(x,y,z)));
-  const river=path(Array.from({length:23},(_,i)=>{const x=-10.95+i*.995;return [x,stream(x),.32]}));
+  function riverMouth(direction){
+    let x=0;
+    while(edge(x,stream(x))<.995)x+=direction*.08;
+    return x;
+  }
+  const inlet=riverMouth(-1), outlet=riverMouth(1);
+  const river=path(Array.from({length:39},(_,i)=>{
+    const x=T.MathUtils.lerp(inlet,outlet,i/38);
+    return [x,stream(x),.32];
+  }));
+  for(let i=-3;i<=3;i++){
+    const z=stream(outlet)+i*.115;
+    const drop=1.6+.23*Math.cos(i*1.3);
+    box(outlet,.33-drop/2,z,.17,drop,.135,i%2?'#79c6ba':'#a4d6c6');
+  }
   ribbon(river,.93,'#459f9b',.011);
   ribbon(river,.57,'#66bfb2',.018);
   const ripples=[];
@@ -146,6 +162,7 @@ export function makeWorld(stage, pins) {
     path([[1.4,-1.15],[1.2,.1,.89],[1.2,1.8,.89],[1.55,3.3],[3.8,4.1],[7,3.7],[8.6,2.8]]),
     path([[8,-1.3],[8.2,-2.7],[7,-4.3],[5.4,-4.95]])
   ];
+  landmark='maps';
   routes.forEach(r=>{
     ribbon(r,.86,'#c1b28a',.035);
     ribbon(r,.67,'#555e57',.096);
@@ -170,11 +187,12 @@ export function makeWorld(stage, pins) {
     return {route,group};
   });
 
+  landmark=null;
   const trunk=material('#6e5740'), pineColors=['#285743','#3c6d4e','#487753','#679157','#346950'];
   const pines=[];
   const treeLower=new T.ConeGeometry(.63,1.4,7), treeUpper=new T.ConeGeometry(.46,1.24,7);
   const trunkGeometry=new T.CylinderGeometry(.065,.1,.51,5);
-  const blocked=[[-11,-2.6,2.1],[-5.2,3.8,2],[5.2,-2.6,3.05],[-.6,5.25,1.65],[5,-5.6,1.45]];
+  const blocked=[[6.1,5.65,1.95],[-9,4.4,1.75],[-11,-2.6,2.1],[-5.2,3.8,2],[5.2,-2.6,3.05],[-.6,5.25,1.65],[5,-5.6,1.45]];
   const roadSamples=routes.flatMap(route=>route.getSpacedPoints(40));
   for(let n=0;n<1200 && pines.length<205;n++){
     const x=(random()-.5)*24,z=(random()-.5)*18,y=ground(x,z);
@@ -212,6 +230,7 @@ export function makeWorld(stage, pins) {
     box(x,y-.15,z,w,.3,d,color);
     return y;
   }
+  landmark='weather';
   const wx=-5.4,wz=3.82,wy=platform(wx,wz,2.53,1.93);
   box(wx-.44,wy+.34,wz,.92,.7,.82,'#e9dbb6');
   const roof=mesh(new T.ConeGeometry(.78,.39,4), '#aa5539',wx-.44,wy+.87,wz);
@@ -230,6 +249,7 @@ export function makeWorld(stage, pins) {
   }
   for(const x of [wx-.99,wx+1.11]) for(const z of [wz-.86,wz+.86]) box(x,wy+.16,z,.06,.39,.06,'#eee3be');
 
+  landmark='city';
   const buildings=[
     [3.4,-2.68,1.23,1.5,.94,'#d29962'],[4.85,-2.75,1.2,2.64,1.04,'#dfd9b5'],
     [6.22,-2.6,1.03,1.91,1,'#609291'],[7.36,-2.86,.78,1.22,.76,'#bd7454'],
@@ -248,6 +268,7 @@ export function makeWorld(stage, pins) {
     }
   }
 
+  landmark='tower';
   const tx=-.32,tz=5.16,ty=platform(tx,tz,1.8,1.75,'#b2a582');
   const levels=[0,.65,1.31,1.96,2.62,3.27];
   function towerPoint(i,j){
@@ -268,6 +289,7 @@ export function makeWorld(stage, pins) {
   }
   box(tx+.54,ty+.21,tz+.35,.43,.42,.39,'#698b7d');
 
+  landmark='satellite';
   const satellite=new T.Group();
   scene.add(satellite);
   satellite.position.set(-.25,6.6,-5.2);
@@ -284,6 +306,7 @@ export function makeWorld(stage, pins) {
   dish.rotation.x=Math.PI/2;
   beam(vec(0,0,.37),vec(0,0,.71),.033,'#d2bf95',satellite);
 
+  landmark=null;
   const radioCurve=new T.CatmullRomCurve3([vec(-.25,6.2,-4.8),vec(-1,5.6,-1.3),vec(-.7,5.4,2.4),vec(tx,ty+3.95,tz)]);
   const telemetry=new T.CatmullRomCurve3([vec(wx,wy+1.4,wz),vec(-3,3.1,4.9),vec(tx,ty+3,tz),vec(2,4.4,1.4),vec(5,3.5,-2.5)]);
   const signals=[radioCurve,telemetry].map((curve,i)=>{
@@ -304,6 +327,7 @@ export function makeWorld(stage, pins) {
     return {group,x,y,z,i};
   });
 
+  landmark='vision';
   const labX=-11, labZ=-2.6, labY=platform(labX,labZ,2.85,2.1);
   box(labX,labY+.49,labZ,2.25,.98,1.6,'#ca9870');
   box(labX,labY+1,labZ,2.44,.12,1.76,'#e9dec6');
@@ -311,7 +335,37 @@ export function makeWorld(stage, pins) {
   beam(vec(labX-.35,labY+1.4,labZ),vec(labX-.12,labY+1.96,labZ+.65),.16,'#3a5962');
   for(const dx of [-.69,-.22,.25,.72]) box(labX+dx,labY+.55,labZ+.81,.32,.38,.04,'#406768');
   const labFocus=vec(labX,labY+.92,labZ);
+  // The archive porch faces the river and the terminal faces the southern road.
+  landmark='archive';
+  const ax=-9, az=4.4, ay=platform(ax,az,2.7,1.85);
+  box(ax,ay+.51,az,2.16,1.02,1.38,'#936847');
+  const archiveRoof=mesh(new T.ConeGeometry(1,.63,4),'#456e68',ax,ay+1.29,az);
+  archiveRoof.rotation.y=Math.PI/4;archiveRoof.scale.set(1.84,1,1.35);
+  for(const dx of [-.67,.68]){
+    box(ax+dx,ay+.58,az+.705,.41,.46,.035,'#bed9c8');
+    box(ax+dx,ay+.58,az+.73,.035,.46,.03,'#654a39');
+  }
+  box(ax,ay+.4,az+.71,.37,.81,.05,'#3e5b4c');
+  for(const dx of [-1,1])beam(vec(ax+dx,ay,az+.86),vec(ax+dx,ay+1.04,az+.86),.046,'#e9d3a1');
+  landmark='terminal';
+  const hx=6.1,hz=5.65,hy=platform(hx,hz,2.9,1.8);
+  box(hx,hy+.46,hz,2.32,.92,1.32,'#d8b88a');
+  box(hx,hy+.98,hz,2.68,.16,1.65,'#aa6249');
+  for(const dx of [-.78,-.35,.08,.51])box(hx+dx,hy+.54,hz+.673,.31,.41,.04,'#598382');
+  box(hx+.91,hy+.43,hz+.69,.29,.83,.05,'#365851');
+  const clock=mesh(new T.CylinderGeometry(.31,.31,.09,16),'#f2e9c8',hx,hy+1.28,hz+.49);
+  clock.rotation.x=Math.PI/2;
+  beam(vec(hx,hy+1.28,hz+.55),vec(hx,hy+1.49,hz+.55),.022,'#354f43');
+  beam(vec(hx,hy+1.28,hz+.55),vec(hx+.12,hy+1.22,hz+.55),.021,'#354f43');
+  ribbon(path([[6.1,4.82],[6.25,4.5],[6.53,3.84]]),.42,'#c4b58c',.08);
+  ribbon(path([[-9,3.63],[-8,3.35],[-7,3.65],[-6.3,3.8]]),.37,'#c4b58c',.065);
+  for(const [x,z] of [[6.68,4.48],[7.25,4.39],[-8,3.09]]){
+    const y=ground(x,z);
+    beam(vec(x,y,z),vec(x,y+.83,z),.032,'#516553');
+    mesh(new T.IcosahedronGeometry(.116,1),'#f3d39a',x,y+.85,z);
+  }
   const anchors={
+    archive:vec(ax,ay+1.8,az), terminal:vec(hx,hy+1.68,hz),
     vision:vec(labX,labY+2.3,labZ),
     weather:vec(wx,wy+1.8,wz),
     city:vec(6,3.75,-3.6),
@@ -320,6 +374,7 @@ export function makeWorld(stage, pins) {
     tower:vec(tx,ty+3.4,tz)
   };
   const focus={
+    archive:vec(ax,ay+.6,az), terminal:vec(hx,hy+.65,hz),
     vision:labFocus,
     weather:vec(wx,wy+.68,wz),
     city:vec(5.1,1.58,-3.05),
@@ -357,15 +412,26 @@ export function makeWorld(stage, pins) {
   let drag=null;
   const surface=renderer.domElement;
   const touches=new Map();
+  const raycaster=new T.Raycaster(), pointer=new T.Vector2();
+  let tap=null;
+  function pick(event){
+    const bounds=surface.getBoundingClientRect();
+    pointer.set((event.clientX-bounds.left)/width*2-1,1-(event.clientY-bounds.top)/height*2);
+    raycaster.setFromCamera(pointer,camera);
+    const hit=raycaster.intersectObjects(scene.children,true).find(hit=>hit.object.isMesh);
+    return hit?.object.userData.landmark;
+  }
   const spread=()=>{const [a,b]=touches.values();return Math.hypot(a.x-b.x,a.y-b.y)};
   surface.addEventListener('pointerdown',e=>{
     if(e.button!==0)return;
     surface.setPointerCapture(e.pointerId);
     touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     drag={x:e.clientX,y:e.clientY};
+    tap=touches.size===1?drag:null;
   });
   surface.addEventListener('pointermove',e=>{
     if(!touches.has(e.pointerId))return;
+    if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>5)tap=null;
     const prev=touches.size===2?spread():0;
     touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(touches.size===2 && prev>0) {
@@ -377,6 +443,8 @@ export function makeWorld(stage, pins) {
     drag={x:e.clientX,y:e.clientY};
   });
   for(const event of ['pointerup','pointercancel','lostpointercapture']) surface.addEventListener(event,e=>{
+    if(event==='pointerup'&&tap){const id=pick(e);if(id)onVisit(id)}
+    tap=null;
     touches.delete(e.pointerId);drag=touches.values().next().value ?? null;
   });
   surface.addEventListener('wheel',e=>{e.preventDefault();scale(Math.exp(T.MathUtils.clamp(e.deltaY,-85,85)*.0033))},{passive:false});
@@ -425,11 +493,25 @@ export function makeWorld(stage, pins) {
         dot.scale.setScalar(active?1.65:1);
       });
     });
+    const visible=[];
     for(const [id,button] of Object.entries(pins)){
       projection.copy(anchors[id]).project(camera);
       const x=(projection.x*.5+.5)*width,y=(.5-projection.y*.5)*height;
-      button.hidden=(selected!==null&&selected!==id)||projection.z>1||x<31||x>width-31||y<35||y>height-35;
-      button.style.left=x+'px';button.style.top=y+'px';
+      button.hidden=(selected!==null&&selected!==id)||projection.z>1||x<15||x>width-15||y<32||y>height-26;
+      if(!button.hidden)visible.push({button,x,y,w:button.offsetWidth,h:button.offsetHeight});
+    }
+    const placed=[];
+    for(const label of visible.sort((a,b)=>b.y-a.y)){
+      const {button,w,h}=label;
+      const x=T.MathUtils.clamp(label.x,w/2+5,width-w/2-5);
+      let bottom=label.y;
+      for(const other of placed){
+        if(Math.abs(other.x-x)<(other.w+w)/2+3 && bottom>other.top-4 && bottom-h<other.bottom+4)
+          bottom=other.top-4;
+      }
+      placed.push({x,w,top:bottom-h,bottom});
+      button.style.left=x+'px';button.style.top=bottom+'px';
+      button.style.setProperty('--leader',Math.max(6,label.y-bottom+6)+'px');
     }
     renderer.render(scene,camera);
   });

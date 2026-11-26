@@ -1,6 +1,20 @@
 import { makeWorld } from './world.js';
 
 const projects = {
+  archive:{
+    name:'Sound Archive', short:'Sound Archive', icon:'♫', theme:'Linux & transcription', section:'DESKTOP ENGINEERING',
+    intro:'A searchable record of spoken audio.',
+    copy:'My GTK4 transcriber wraps whisper.cpp with batch processing, progress estimates, cancellation, and resume controls. It uses memory-mapped files to search transcripts without loading each file in full. Try searching the sample field recordings below.',
+    links:[['Transcriber source','https://github.com/JaredTweed/AudioToTextTranscriber']],
+    demo:'Transcript search',action:'Find passages',idle:'Three sample field notes'
+  },
+  terminal:{
+    name:'Timetable Hall', short:'Timetable Hall', icon:'◷', theme:'Scheduling & optimization', section:'APPLIED MATHEMATICS',
+    intro:'How many bookings fit in an open window?',
+    copy:'My appointment scheduler uses Diophantine equations to find combinations of appointment lengths that fit a time slot. Choose a window to count its exact-fit schedules using 20- and 30-minute bookings.',
+    links:[['Try the scheduler','https://jaredtweed.github.io/tetrisbooking/']],
+    demo:'Booking combinations',action:'Calculate schedules',idle:'Choose a time window'
+  },
   vision: {
     name:'Vision Lab', short:'Vision Lab', icon:'◎', theme:'Machine learning & imaging', section:'COMPUTER VISION',
     intro:'From a NumPy convolutional network to real-time hand tracking.',
@@ -65,6 +79,7 @@ for(const [id,p] of Object.entries(projects)){
   locations.append(entry);entries[id]=entry;
   const pin=button('', 'pin');
   pin.innerHTML=`<span aria-hidden="true">${p.icon}</span>${p.short}`;
+  pin.setAttribute('aria-label',p.name);pin.title=p.name;
   pin.dataset.location=id;
   pin.hidden=true;
   pin.setAttribute('aria-pressed','false');
@@ -115,6 +130,32 @@ function select(id, invoker){
   const output=document.createElement('output');output.textContent=p.idle;
   const action=button(p.action,'demo-action');
   demo.append(heading,output);
+  let runDemo;
+  if(id==='archive'){
+    const search=document.createElement('input');
+    search.type='search';search.value='river';search.setAttribute('aria-label','Search sample transcripts');
+    demo.append(search);
+    const notes=['08:14 · River level rose overnight.','09:32 · Wind shifted to the northwest.','11:06 · River gauge readings stabilized.'];
+    runDemo=()=>{
+      const matches=notes.filter(line=>line.toLowerCase().includes(search.value.trim().toLowerCase()));
+      output.textContent=matches.join('\n')||'No matching passages.';
+    };
+    search.addEventListener('keydown',event=>{if(event.key==='Enter')runDemo()});
+  }
+  if(id==='terminal'){
+    const windowSize=document.createElement('select');
+    windowSize.setAttribute('aria-label','Booking window');
+    for(const minutes of [60,90,120,150])windowSize.add(new Option(minutes+' minutes',minutes));
+    demo.append(windowSize);
+    runDemo=()=>{
+      const total=Number(windowSize.value), fits=[];
+      for(let long=0;long*30<=total;long++){
+        const short=(total-long*30)/20;
+        if(Number.isInteger(short))fits.push(short+' × 20 min + '+long+' × 30 min');
+      }
+      output.textContent=fits.join('\n');
+    };
+  }
   if(id==='vision'){
     const canvas=document.createElement('canvas');
     canvas.width=72; canvas.height=28; canvas.className='edge-demo';
@@ -156,6 +197,7 @@ function select(id, invoker){
   action.addEventListener('click',()=>{
     clearTimeout(timer);
     world?.demo(p.effect);
+    if(runDemo){runDemo();return}
     if(id==='city'){
       let complete=0;
       const tick=()=>{
@@ -178,13 +220,13 @@ function select(id, invoker){
   title.focus({preventScroll:true});
 }
 try{
-  world=makeWorld(byId('stage'),pins);
+  world=makeWorld(byId('stage'),pins,id=>select(id,pins[id]));
 }catch(error){
   console.warn('Interactive map unavailable',error);
   byId('stage').replaceChildren();
   const message=document.createElement('div');
   message.className='fallback-note';
-  message.textContent='The 3D map requires WebGL. You can still explore all six landmarks in the field guide.';
+  message.textContent='The 3D map requires WebGL. You can still explore all eight landmarks in the field guide.';
   byId('stage').append(message);
   byId('stage').removeAttribute('aria-hidden');
   byId('map-help').textContent='Explore with the field guide';

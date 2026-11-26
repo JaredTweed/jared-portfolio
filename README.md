@@ -1,6 +1,6 @@
 # Jared Tweed · Field Atlas
 
-A static portfolio with a procedural Three.js island. The six landmarks connect work in weather monitoring, software, computer vision, maps, radio navigation, and telemetry. Demo data is simulated locally. Three.js and its license are bundled in dist/.
+A static portfolio with a procedural Three.js island. The eight landmarks connect work in weather monitoring, software, computer vision, maps, radio navigation, and telemetry. Demo data is simulated locally. Three.js and its license are bundled in dist/.
 
 Serve the site with Python 3 and open http://localhost:8000.
 
