@@ -78,12 +78,29 @@ export function makeWorld(stage, pins, onVisit) {
     m.quaternion.setFromUnitVectors(vec(0,1,0),delta.normalize());
     return m;
   }
+  const groundLight=document.createElement('canvas');groundLight.width=groundLight.height=512;
+  const occlusion=groundLight.getContext('2d');
+  occlusion.fillStyle='#fff';occlusion.fillRect(0,0,512,512);
+  function contactShade(x,z,rx,rz,density){
+    occlusion.save();
+    occlusion.translate(256+x*12.8,256+z*12.8);
+    occlusion.scale(rx*12.8,rz*12.8);
+    const falloff=occlusion.createRadialGradient(0,0,0,0,0,1);
+    falloff.addColorStop(0,'rgba(0,0,0,'+density+')');
+    falloff.addColorStop(.45,'rgba(0,0,0,'+density*.66+')');
+    falloff.addColorStop(1,'rgba(0,0,0,0)');
+    occlusion.fillStyle=falloff;occlusion.fillRect(-1,-1,2,2);occlusion.restore();
+  }
+  const groundAO=new T.CanvasTexture(groundLight);
   function triangleMesh(vertices,colors) {
     const geo=new T.BufferGeometry();
     geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));
     geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));
     geo.computeVertexNormals();
-    const m=new T.Mesh(geo,material(0xffffff,{vertexColors:true,side:T.DoubleSide}));
+    const coords=[];
+    for(let i=0;i<vertices.length;i+=3)coords.push(.5+vertices[i]/40,.5-vertices[i+2]/40);
+    geo.setAttribute('uv',new T.Float32BufferAttribute(coords,2));
+    const m=new T.Mesh(geo,material(0xffffff,{vertexColors:true,side:T.DoubleSide,aoMap:groundAO,aoMapIntensity:1}));
     m.receiveShadow=true;
     m.castShadow=true;
     scene.add(m);
@@ -361,6 +378,7 @@ export function makeWorld(stage, pins, onVisit) {
     if(pines.some(t=>Math.hypot(x-t.x,z-t.z)<.39)) continue;
     pines.push({x,y,z,s:.41+random()*.85,a:random()*6.28,c:new T.Color(pineColors[Math.floor(random()*pineColors.length)])});
   }
+  for(const pine of pines)contactShade(pine.x,pine.z,pine.s*.95,pine.s*.87,.81);
   const dummy=new T.Object3D();
   const winterFoliage=[];
   for(const [geometry,offset,mat,variation] of [[trunkGeometry,.23,trunk,false],[treeLower,.89,material(0xffffff),true],[treeUpper,1.43,material(0xffffff),true]]){
@@ -399,6 +417,7 @@ export function makeWorld(stage, pins, onVisit) {
   }
 
   function platform(x,z,w,d,color='#b1ab86'){
+    contactShade(x,z,w*.82,d*.85,.9);
     const y=ground(x,z)+.15;
     box(x,y-.15,z,w,.3,d,color);
     return y;
@@ -542,6 +561,13 @@ export function makeWorld(stage, pins, onVisit) {
   beam(vec(hx,hy+1.28,hz+.55),vec(hx+.12,hy+1.22,hz+.55),.021,'#354f43');
   ribbon(path([[6.1,4.82],[6.25,4.5],[6.53,3.84]]),.42,'#c4b58c',.08);
   ribbon(path([[-9,3.63],[-8,3.35],[-7,3.65],[-6.3,3.8]]),.37,'#c4b58c',.065);
+  const haloCanvas=document.createElement('canvas');haloCanvas.width=haloCanvas.height=64;
+  const haloInk=haloCanvas.getContext('2d');
+  const halo=haloInk.createRadialGradient(32,32,0,32,32,32);
+  halo.addColorStop(0,'rgba(255,227,168,.86)');halo.addColorStop(.16,'rgba(255,194,121,.32)');
+  halo.addColorStop(.5,'rgba(255,179,106,.095)');halo.addColorStop(1,'rgba(255,171,94,0)');
+  haloInk.fillStyle=halo;haloInk.fillRect(0,0,64,64);
+  const haloMaterial=new T.SpriteMaterial({map:new T.CanvasTexture(haloCanvas),transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:0});
   const streetLights=[];
   for(const [x,z] of [[6.68,4.48],[7.25,4.39],[-8,3.09]]){
     const y=ground(x,z);
@@ -550,6 +576,7 @@ export function makeWorld(stage, pins, onVisit) {
     const light=new T.PointLight(0xffc48a,0,3.3,2);
     light.position.set(x,y+.77,z);
     streetLights.push(light);scene.add(light);
+    const glow=new T.Sprite(haloMaterial);glow.position.set(x,y+.85,z);glow.scale.setScalar(.84);scene.add(glow);
   }
   const anchors={
     archive:vec(ax,ay+1.8,az), terminal:vec(hx,hy+1.68,hz),
@@ -689,9 +716,10 @@ export function makeWorld(stage, pins, onVisit) {
   lampBulb.emissive.set('#ffbc73');
   const skyDay=new T.Color('#deebfa'),skyNight=new T.Color('#99abc9');
   const cloudDay=new T.Color('#fffdf6'),cloudNight=new T.Color('#c4948c');
-  const dayPosition=vec(-16,17,7),eveningPosition=vec(-19,8,-9);
+  const dayPosition=vec(-15,14,8),eveningPosition=vec(-19,8,-9);
   let lastShadowBlend=-1;
-  const homeSun=new T.Color(0xffdfac), duskSun=new T.Color(0xff9b6e);
+  groundAO.needsUpdate=true;
+  const homeSun=new T.Color(0xffdeb4), duskSun=new T.Color(0xff9b6e);
   let blend=0, displayAngle=angle, displayElevation=elevation;
   let last=performance.now(), time=0, routeStart=0;
   renderer.shadowMap.autoUpdate=false;
@@ -722,7 +750,7 @@ export function makeWorld(stage, pins, onVisit) {
     seaMaterial.uniforms.sunDirection.value.copy(sun.position).normalize();
     for(const glass of interiorLights)glass.emissiveIntensity=blend*1.35;
     for(const light of streetLights)light.intensity=blend*3.2;
-    lampBulb.emissiveIntensity=blend*2;
+    lampBulb.emissiveIntensity=blend*2;haloMaterial.opacity=blend*.83;
     ambient.intensity=T.MathUtils.lerp(1.72,.92,blend);
     cup.rotation.y=time*(behavior==='gust'?8:2.4);
     satellite.position.y=6.6+Math.sin(time*.85)*.23;
