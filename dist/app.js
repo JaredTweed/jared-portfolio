@@ -72,12 +72,16 @@ function button(text, className) {
   element.type='button'; element.className=className; element.textContent=text;
   return element;
 }
-for(const [id,p] of Object.entries(projects)){
+const featuredLocations=['maps','weather','city'];
+for(const id of [...featuredLocations,...Object.keys(projects).filter(id=>!featuredLocations.includes(id))]){
+  const p=projects[id];
   const entry=button('', 'location');
   entry.innerHTML=`<span class="location-icon" aria-hidden="true">${p.icon}</span><span><strong>${p.name}</strong><small>${p.theme}</small></span><span class="chevron" aria-hidden="true">›</span>`;
   entry.addEventListener('click',()=>select(id,entry));
   entry.setAttribute('aria-pressed','false');
-  locations.append(entry);entries[id]=entry;
+  (featuredLocations.includes(id)?byId('featured-locations'):byId('other-locations')).append(entry);
+  entries[id]=entry;
+  if(!featuredLocations.includes(id))continue;
   const pin=button('', 'pin');
   pin.innerHTML=`<span aria-hidden="true">${p.icon}</span>${p.short}`;
   pin.setAttribute('aria-label',p.name);pin.title=p.name;
@@ -111,7 +115,7 @@ function select(id, invoker, {update=true,featured=false}={}){
   world?.go(id);
   for(const key of Object.keys(projects)){
     entries[key].setAttribute('aria-pressed',String(id===key));
-    pins[key].setAttribute('aria-pressed',String(id===key));
+    pins[key]?.setAttribute('aria-pressed',String(id===key));
   }
   detail.replaceChildren();
   locations.hidden=Boolean(id);
@@ -121,6 +125,7 @@ function select(id, invoker, {update=true,featured=false}={}){
   const title=byId('guide-title');
   title.textContent=id?projects[id].name:'Explore the island';
   if(!id){
+    if(invoker?.closest('#other-locations')) byId('more-locations').open=true;
     if(invoker) invoker.focus({preventScroll:true});
     return;
   }
@@ -247,7 +252,7 @@ function select(id, invoker, {update=true,featured=false}={}){
 async function initializeWorld(){
 try{
   const {makeWorld}=await import('./world.js');
-  world=makeWorld(byId('stage'),pins,id=>select(id,pins[id]),()=>{
+  world=makeWorld(byId('stage'),pins,id=>select(id,pins[id]??entries[id]),()=>{
     byId('island-preview').hidden=true;
     byId('map').classList.add('world-ready');
   });

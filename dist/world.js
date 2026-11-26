@@ -220,19 +220,53 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
     const x=T.MathUtils.lerp(inlet,outlet,i/38);
     return [x,stream(x),.32];
   }));
-  for(let i=-3;i<=3;i++){
-    const z=stream(outlet)+i*.115;
-    const drop=1.6+.23*Math.cos(i*1.3);
-    box(outlet,.33-drop/2,z,.17,drop,.135,i%2?'#79c6ba':'#a4d6c6');
+  const waterGeometry=new T.PlaneGeometry(1,1,240,8);
+  const waterPositions=waterGeometry.attributes.position;
+  for(let i=0;i<waterPositions.count;i++){
+    const u=waterGeometry.attributes.uv.getX(i), across=waterGeometry.attributes.uv.getY(i)-.5;
+    const p=river.getPointAt(u), direction=river.getTangentAt(u);
+    const width=.98+.17*Math.sin(u*33)+.12*Math.cos(u*59)+.23*Math.exp(-((u-.67)**2)/.01);
+    const drop=T.MathUtils.smoothstep(u,.986,1);
+    waterPositions.setXYZ(i,p.x+direction.z*across*width+drop*.32,.338-drop*1.175,p.z-direction.x*across*width);
   }
-  ribbon(river,.93,'#459f9b',.011);
-  ribbon(river,.57,'#66bfb2',.018);
-  const ripples=[];
-  for(let i=0;i<28;i++){
-    const m=box(0,0,0,.17+random()*.38,.009,.027,i%4===0?'#cae4c8':'#8bd1bd');
-    m.castShadow=false;
-    ripples.push(m);
-  }
+  waterPositions.needsUpdate=true;
+  waterGeometry.computeVertexNormals();
+  const waterMaterial=new T.ShaderMaterial({
+    side:T.DoubleSide,
+    uniforms:{time:{value:0},night:{value:0},sunDirection:{value:new T.Vector3()}},
+    vertexShader:`varying vec2 streamUV; varying vec3 surface;
+    void main(){streamUV=uv;surface=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec2 streamUV;varying vec3 surface;uniform float time;uniform float night;uniform vec3 sunDirection;
+    void main(){
+      vec2 p=streamUV;
+      float drift=p.x-time*.062;
+      float eddy=sin(drift*207.+4.6*sin(p.y*12.+p.x*15.));
+      float ripple=sin(drift*387.+p.y*28.+2.5*sin(p.x*49.-p.y*8.));
+      float shallows=smoothstep(.29,.5,abs(p.y-.5));
+      vec3 view=normalize(cameraPosition-surface);
+      vec3 normal=normalize(vec3(.084*eddy,1.,.074*ripple));
+      float reflectance=pow(1.-max(0.,dot(view,normal)),3.);
+      vec3 deep=vec3(.054,.263,.224);
+      vec3 sand=vec3(.245,.341,.206);
+      vec3 color=mix(deep,sand,shallows*.76);
+      color+=.028*eddy+.017*ripple;
+      color=mix(color,vec3(.52,.69,.72),.54*reflectance);
+      float shine=pow(max(0.,dot(normal,normalize(view+sunDirection))),49.);
+      color+=shine*vec3(.7,.61,.43);
+      float whitewater=smoothstep(1.11,1.88,eddy+ripple);
+      float seam=sin(drift*94.+2.8*sin(p.y*19.+p.x*31.));
+      float wakes=pow(max(0.,seam),10.)*smoothstep(.16,.46,abs(p.y-.5));
+      color+=wakes*vec3(.07,.11,.10);
+      float bank=smoothstep(.36,.48,abs(p.y-.5));
+      float fall=smoothstep(.987,1.,p.x);
+      color=mix(color,vec3(.72,.86,.77),whitewater*(.22*bank+.78*fall)+.28*fall);
+      color*=mix(vec3(1.),vec3(.45,.57,.68),night);
+      gl_FragColor=vec4(color,1.);
+      #include <colorspace_fragment>
+    }`
+  });
+  const water=new T.Mesh(waterGeometry,waterMaterial);
+  scene.add(water);
 
   const routes=[
     path([[-9,-.3],[-6,-.9],[-3,-1.68],[0,-1.15],[2.7,-.65],[5,-.8],[8,-1.3]]),
@@ -385,7 +419,7 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
   }
   const treeLower=firCrown(.61,1.42),treeUpper=firCrown(.40,1.17);
   const trunkGeometry=new T.CylinderGeometry(.065,.1,.51,5);
-  const blocked=[[6.1,5.65,1.95],[-9,4.4,1.75],[-11,-2.6,2.1],[-5.2,3.8,2],[5.2,-2.6,3.05],[-.6,5.25,1.65],[5,-5.6,1.45]];
+  const blocked=[[2.2,2.7,1.04],[6.1,5.65,1.95],[-9,4.4,1.75],[-11,-2.6,2.1],[-5.2,3.8,2],[5.2,-2.6,3.05],[-.6,5.25,1.65],[5,-5.6,1.45]];
   const roadSamples=routes.flatMap(route=>route.getSpacedPoints(40));
   for(let n=0;n<1200 && pines.length<205;n++){
     const x=(random()-.5)*24,z=(random()-.5)*18,y=ground(x,z);
@@ -808,13 +842,13 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
     lampBulb.emissiveIntensity=blend*2;haloMaterial.opacity=blend*.83;
     ambient.intensity=T.MathUtils.lerp(1.72,.92,blend);
     cup.rotation.y=time*(behavior==='gust'?8:2.4);
+    satellite.visible=selected==='satellite';
     satellite.position.y=6.6+Math.sin(time*.85)*.23;
     satellite.rotation.y=.25+Math.sin(time*.62)*.24;
     clouds.forEach(({group,x,y,z,i})=>group.position.set(x+Math.sin(time*.24+i)*.95,y+Math.cos(time*.26+i)*.13,z));
-    ripples.forEach((m,i)=>{
-      const u=(i/ripples.length+time*.083)%1, p=river.getPointAt(u);
-      m.position.set(p.x,.351,p.z+Math.sin(i*13)*.25);
-    });
+    waterMaterial.uniforms.time.value=time;
+    waterMaterial.uniforms.night.value=blend;
+    waterMaterial.uniforms.sunDirection.value.copy(seaMaterial.uniforms.sunDirection.value);
     cars.forEach(({route,group},i)=>{
       const phase=(time*.045+i*.18)%2;
       const progress=phase<=1?phase:2-phase;
@@ -840,8 +874,10 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
     seaMaterial.uniforms.night.value=blend;
     signals.forEach(({curve,line,dots},i)=>{
       const active=behavior===(i===0?'radio':'packet');
-      line.material.opacity=active?.94:.47;
+      line.visible=active;
+      line.material.opacity=.84;
       dots.forEach((dot,j)=>{
+        dot.visible=active;
         dot.position.copy(curve.getPointAt((time*(active?.59:.21)+j/dots.length)%1));
         dot.scale.setScalar(active?1.65:1);
       });
@@ -883,5 +919,5 @@ export function makeWorld(stage, pins, onVisit, onFirstFrame) {
   }
   return {go,scale,setWinter,setDusk:value=>{dusk=value},demo:value=>{behavior=value},
     cyclePoint:u=>routes[1].getPointAt(u),
-    showRide:u=>{if(behavior!=='route'){zoom=5.9;elevation=.51;angle=.71}behavior='route';rideProgress=u}};
+    showRide:u=>{if(behavior!=='route'){zoom=6.6;elevation=.66;angle=.64}behavior='route';rideProgress=u}};
 }
