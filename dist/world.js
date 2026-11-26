@@ -674,10 +674,10 @@ export function makeWorld(stage, pins, onVisit) {
   probeInk.fillStyle=skyGradient;probeInk.fillRect(0,0,256,128);
   const skyMap=new T.CanvasTexture(skyProbe);
   skyMap.mapping=T.EquirectangularReflectionMapping;skyMap.colorSpace=T.SRGBColorSpace;
-  scene.environment=skyMap;
+  const reflectiveSurfaces=new Set();
   for(const [key,metalness,roughness] of [['#d9ad68',.74,.36],['#d6c49c',.66,.36],['#365c72',.42,.19],['#7fa9a5',.54,.43],['#459f9b',.18,.21],['#66bfb2',.18,.23]]){
     const surface=materials.get(key);
-    if(surface){surface.metalness=metalness;surface.roughness=roughness}
+    if(surface){surface.envMap=skyMap;surface.metalness=metalness;surface.roughness=roughness;reflectiveSurfaces.add(surface)}
   }
   const siding=document.createElement('canvas');siding.width=128;siding.height=128;
   const grain=siding.getContext('2d');
@@ -699,7 +699,7 @@ export function makeWorld(stage, pins, onVisit) {
   let windowNumber=0;
   scene.traverse(object=>{
     if(!object.isMesh||!glazing.has(object.material))return;
-    object.material.roughness=.3;
+    object.material.roughness=.3;object.material.envMap=skyMap;reflectiveSurfaces.add(object.material);
     if(++windowNumber%5===0)return;
     const original=object.material;
     const group=windowNumber%3;
@@ -708,7 +708,7 @@ export function makeWorld(stage, pins, onVisit) {
       const glass=original.clone();
       glass.emissive.set(['#ffc88a','#e6b680','#ffe2b3'][group]);
       glass.emissiveIntensity=0;
-      interiorLights.push(glass);materials.set(key,glass);
+      interiorLights.push(glass);reflectiveSurfaces.add(glass);materials.set(key,glass);
     }
     object.material=materials.get(key);
   });
@@ -724,7 +724,17 @@ export function makeWorld(stage, pins, onVisit) {
   let last=performance.now(), time=0, routeStart=0;
   renderer.shadowMap.autoUpdate=false;
   renderer.shadowMap.needsUpdate=true;
+  let frameCount=0,sampleStart=performance.now();
   renderer.setAnimationLoop(now=>{
+    // Adapt the 3D buffer independently of the full-resolution guide and map labels.
+    if(++frameCount>=24){
+      const elapsed=(now-sampleStart)/frameCount;
+      const current=renderer.getPixelRatio();
+      const ceiling=Math.min(devicePixelRatio,1.65);
+      const next=elapsed>48?Math.max(.68,current*.82):elapsed<20?Math.min(ceiling,current+.09):current;
+      if(Math.abs(current-next)>.04)renderer.setPixelRatio(next);
+      frameCount=0;sampleStart=now;
+    }
     const step=T.MathUtils.clamp((now-last)/1000,0,.05);
     last=now; if(!reduced.matches)time+=step;
     const amount=reduced.matches ? 1 : 1-Math.exp(-step*5.2);
@@ -744,7 +754,7 @@ export function makeWorld(stage, pins, onVisit) {
     }
     sun.intensity=T.MathUtils.lerp(3.1,1.55,blend);
     ambient.color.copy(skyDay).lerp(skyNight,blend);
-    scene.environmentIntensity=T.MathUtils.lerp(.38,.14,blend);
+    for(const surface of reflectiveSurfaces)surface.envMapIntensity=T.MathUtils.lerp(.38,.14,blend);
     cloudMat.color.copy(cloudDay).lerp(cloudNight,blend);
     sky.material.uniforms.dusk.value=blend;
     seaMaterial.uniforms.sunDirection.value.copy(sun.position).normalize();
