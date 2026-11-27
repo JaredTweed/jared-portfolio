@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Peak HydroMet time-series widget</title>
+<link rel="stylesheet" href="./widget.css">
+<style>
+@font-face{font-family:Poppins;src:url(./poppins-latin-400-normal.405055dd680fa1dcdfa2.woff2)}@font-face{font-family:Poppins;font-weight:700;src:url(./poppins-latin-700-normal.d86662fe776dae29ea78.woff2)}
+:root{--paper-color:white;--paper-text-color:black;font-family:Poppins,sans-serif}
+body{margin:0}#widget{position:absolute;inset:20px 12px 15px 4px}
+/* Both 100px controls start at the left edge, with a 5px gap. */
+#widget .arrow-to-multi{left:208px!important;right:auto!important;top:0;bottom:auto!important;height:28px;overflow:visible!important;gap:3px;visibility:visible;pointer-events:none}
+#widget .arrow-to-multi img{width:53px;height:22px;object-fit:fill}
+#widget .arrow-to-multi div{white-space:nowrap;transform:none!important;margin:0!important;font-size:12px!important}
+@media(max-width:355px){#widget .arrow-to-multi img{width:30px}}
+@media(max-width:290px){#widget .arrow-to-multi{display:none!important}}
+</style></head><body><div id="widget"></div><script src="./widget.js"></script></body></html>

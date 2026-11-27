@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f1e6"><meta name="description" content="Explore Jared Tweed’s engineering projects in an interactive miniature world."><title>Jared Tweed — Field Atlas</title><link rel="stylesheet" href="./style.css"></head>
+<body>
+<a class="skip" href="#case-studies">Skip to selected work</a>
+<header><a class="brand" href="./"><span class="mark">✳</span> FIELD ATLAS</a><nav aria-label="Main navigation"><a href="https://peakhydromet.com/">Work</a><a href="https://github.com/JaredTweed">GitHub</a><a href="https://www.linkedin.com/in/jared-tweed/">LinkedIn</a><a href="./Jared-Tweed-Resume.pdf">Résumé</a></nav></header>
+<main>
+<section class="intro" aria-labelledby="title">
+<div><p class="eyebrow">Engineering portfolio</p><h1 id="title">Jared Tweed</h1></div>
+<div class="intro-text"><p class="intro-copy">I build weather-station firmware, cycling maps, and software for sharing photographs.</p><p class="byline">IoT &amp; full-stack engineer · British Columbia</p><a class="intro-work" href="#station-dashboard">My role at Peak HydroMet</a></div>
+</section>
+<section class="atlas" aria-label="Interactive project atlas">
+<div class="map" id="map">
+<img id="island-preview" src="./island-preview.webp" width="968" height="610" fetchpriority="high" alt="Aerial view of the Field Atlas island and its project landmarks">
+<div id="stage" aria-hidden="true"></div>
+<div class="map-top"><span>Project island</span><div class="map-modes"><button id="season" type="button" aria-label="Switch to winter" title="Switch to winter">❄</button><button id="light" type="button" aria-label="Switch to dusk" title="Switch to dusk">☼</button></div></div>
+<div id="pins"></div>
+<div class="map-bottom"><span id="map-help">Drag to orbit</span><div class="map-actions"><button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button><button id="reset" title="Reset view" aria-label="Reset view">⟲</button></div></div>
+</div>
+<aside class="directory overview" aria-label="Project details and directory">
+<div class="directory-head"><p class="eyebrow" id="directory-label">FIELD GUIDE</p><h2 id="guide-title">Explore the island</h2><p id="guide-description">Choose a project to visit its landmark and try the demo.</p></div>
+<noscript><p>The interactive island uses JavaScript. <a href="#case-studies">Read the project stories below.</a></p></noscript><div id="detail" hidden></div><div id="locations" aria-label="Locations"><div id="featured-locations"></div><details id="more-locations"><summary>More island projects</summary><div id="other-locations"></div></details></div>
+</aside></section>
+<section class="catalog" id="station-dashboard" aria-labelledby="hydromet-title">
+<p class="eyebrow">Work experience</p><h2 id="hydromet-title">Peak HydroMet Solutions</h2>
+<div class="story-layout"><div class="story-copy"><h3>Full Stack Developer</h3>
+<p class="role-meta"><time datetime="2024-04">Apr 2024</time> – Present · British Columbia, Canada</p>
+<p>As the company’s sole developer, I meet face to face with clients to discuss product improvements. I build the software that carries field readings from weather instruments to the dashboards people use to interpret them.</p>
+<div class="story-links"><a href="#weather-reading">Follow a weather reading</a><a href="https://peakhydromet.com/">Visit Peak HydroMet Solutions</a></div></div>
+<figure class="station-widget"><iframe src="./hydromet/index.html" title="Peak HydroMet interactive time-series widget" loading="lazy"></iframe><figcaption>The widget I built for Peak HydroMet, running with sample readings.</figcaption></figure></div>
+<dl class="role-scope">
+<div><dt>Firmware &amp; telemetry</dt><dd>Built firmware that reads Davis instruments over RS-485 and sends measurements over LoRaWAN or cellular. Worked with MQTT and AMQP for telemetry.</dd></div>
+<div><dt>Data processing</dt><dd>Parsed JSON, XML, and CSV in Python and used multithreading to speed up data curation.</dd></div>
+<div><dt>Front-end development</dt><dd>Built custom ThingsBoard widgets in HTML, CSS, and JavaScript, optimized ECharts charting with multithreading, and recommended UX improvements.</dd></div>
+<div><dt>Back-end infrastructure</dt><dd>Deployed multiple Node-RED instances on one AWS EC2 instance behind HTTPS. Wrote a script to list, add, edit, and remove users, evaluated APIs through their documentation, integrated MongoDB with Node.js, and built email subscriptions with SendGrid and AWS Lambda.</dd></div>
+<div><dt>Anomaly detection</dt><dd>Built a neural network to flag anomalies in collected measurements.</dd></div>
+</dl></section>
+<section class="catalog feature-story" id="case-studies" aria-labelledby="cases-title">
+<p class="eyebrow">Selected work</p><h2 id="cases-title">Organic Maps</h2>
+<div class="story-layout" id="cycling-evidence">
+<div class="story-copy"><h3>Cycling lines on a real map</h3>
+<p>A cyclist sharing a lane with cars has a different ride from one behind a curb. The released cycling layer shows routes in purple. My proposal gives each kind of infrastructure its own line and puts it on the corresponding side of the road.</p>
+<ul class="line-key"><li><i class="dotted"></i>Shared travel lane</li><li><i class="dashed"></i>Painted bike lane</li><li><i></i>Physically separated track</li></ul>
+<div class="story-links"><a href="#cycling">Ride the island route</a><a href="https://github.com/organicmaps/organicmaps/pull/12692">Read PR #12692</a></div></div>
+<div class="plates"><figure><figcaption>Released layer <small>2026.11.11-39</small></figcaption><a href="./evidence/cycling-release.webp" class="plate" aria-label="Enlarge released cycling layer"><img src="./evidence/cycling-release.webp" width="540" height="710" loading="lazy" alt="Downtown Vancouver with purple cycle routes on the released map"></a></figure>
+<figure><figcaption>Proposed layer <small>PR #12692</small></figcaption><a href="./evidence/cycling-pr.webp" class="plate" aria-label="Enlarge proposed cycling layer"><img src="./evidence/cycling-pr.webp" width="540" height="710" loading="lazy" alt="Same Vancouver streets with dotted, dashed and solid blue infrastructure markings"></a></figure>
+<p class="capture-note">Downtown Vancouver, at the same center and zoom in the Android Emulator. Release uses the regional download. PR build 09bb2672 uses a Vancouver test map. Map data © OpenStreetMap contributors.</p></div></div>
+</section>
+<section class="catalog" id="sharedlens" aria-labelledby="sharedlens-title">
+<p class="eyebrow">Personal project</p><h2 id="sharedlens-title">SharedLens</h2>
+<div class="story-layout">
+<div class="story-copy"><h3>Serverless photo and video gallery</h3>
+<p class="role-meta"><time datetime="2025-05">May 2025</time> – Present · AWS S3, Cognito, Firebase</p>
+<p>Used at five weddings with more than 100 guests. I built a fully client-side gallery where guests on iOS and Android can browse, upload, see photo credits, and remove their own media without an account.</p>
+<div class="story-links"><a href="https://sharedlens.ca">Visit SharedLens</a><a href="https://github.com/JaredTweed/wedding-photos/">View source</a><a href="#city">Try the thumbnail loader</a></div></div>
+<dl class="sharedlens-scope">
+<div><dt>Prioritized loading</dt><dd>I used IntersectionObserver and a distance heuristic to reprioritize thumbnails as visitors scroll. The loader caps concurrent requests at four. Compressed WebP thumbnails for photos and videos reduce storage and bandwidth.</dd></div>
+<div><dt>Uploads and ownership</dt><dd>Amazon Cognito Identity Pools provide temporary credentials. The gallery tracks uploader ownership in localStorage and shows delete controls for media that browser uploaded. Large files use multipart S3 uploads with 5 MB chunks and live progress.</dd></div>
+<div><dt>Custom gallery URLs</dt><dd>I used Firebase Hosting, Authentication, and a database to let organizers create custom paths on sharedlens.ca.</dd></div>
+</dl></div></section>
+<section class="catalog hand-project" id="hand-tracking" aria-labelledby="hands-title">
+<p class="eyebrow">Computer vision</p><h2 id="hands-title">Real-time hand tracking</h2>
+<div class="story-layout"><div class="story-copy"><h3>Track hands in your browser</h3>
+<p>I built Hands to detect hands in a webcam feed. It tracks 21 landmarks per hand, from the wrist to the fingertips. The original app reached 777 active users across 45 countries.</p>
+<p>Try detecting the hands in the sample, or start your camera and raise a hand. Video is processed on your device.</p>
+<div class="story-links"><a href="https://github.com/JaredTweed/hands">View source</a><a href="https://jaredtweed.github.io/hands/">Original app</a></div></div>
+<div class="hand-console">
+<div class="hand-stage"><img id="hand-photo" src="./hands/sample.webp" width="640" height="540" loading="lazy" alt="Sample photograph of a woman holding both hands in front of her"><video id="hand-video" autoplay muted playsinline hidden></video><canvas id="hand-overlay" aria-hidden="true"></canvas><span id="hand-feed" aria-live="polite">Sample photograph</span></div>
+<div class="hand-controls"><div class="hand-buttons"><button id="hand-start" type="button">Start camera</button><button id="hand-sample" type="button">Detect sample hands</button></div>
+<p role="status" id="hand-status">Camera off.</p>
+</div></div></div></section>
+
+<section class="project-pair" aria-label="More featured projects"><article id="panorama"><div><p class="eyebrow">Computer vision · MATLAB</p><h2>Panorama Maker</h2><p>I used FAST corners, Harris scores, and RANSAC to align overlapping photographs of a poster wall. The lettering makes it easy to see where the frames line up.</p>
+<a href="https://github.com/JaredTweed/PanoramaMaker">Explore the implementation</a></div><figure class="stitch"><div class="stitch-stage"><div class="stitch-scene"><img class="source-frame" loading="lazy" src="./field-notes/im1.webp" alt="Poster wall frame 1"><img class="source-frame" loading="lazy" src="./field-notes/im2.webp" alt="Poster wall frame 2"><img class="source-frame" loading="lazy" src="./field-notes/im3.webp" alt="Poster wall frame 3"><img class="source-frame" loading="lazy" src="./field-notes/im4.webp" alt="Poster wall frame 4"><img class="stitch-result" loading="lazy" src="./field-notes/panorama.webp" alt="Completed poster wall panorama"></div></div>
+<figcaption><button type="button" id="stitch-play">Stitch frames</button><label for="stitch-progress">Alignment</label><input type="range" id="stitch-progress" min="0" max="100" value="0"><output id="stitch-state" for="stitch-progress">Four source frames</output></figcaption></figure></article></section>
+
+<details class="catalog secondary-work"><summary>More selected work</summary><div class="work-grid" id="work-list"></div></details>
+<details class="catalog secondary-work" id="open-source"><summary>More open-source contributions</summary><div class="record contribution-details"><div><h2>Contributions in the wild</h2><p>On Feeder, I added seekable read-aloud playback, article translation, and suggestions for discovering publications. My desktop contributions include clipboard behavior on GNOME, model organization in Newelle, and build tooling for whisper.cpp.</p><div class="sources" id="contributions"></div></div><div class="credentials"><h3>Additional tools I work with</h3><p>TypeScript, React, Angular, Express, Flask, Flutter, Dart, PostgreSQL, R, and LaTeX.</p><h3>Cloud &amp; developer tooling</h3><p>AWS Lambda, EC2, S3, API Gateway, IAM, EventBridge, Google Cloud, Firebase, Git, Postman, and Apache Maven.</p><h3>Teaching &amp; communication</h3><p>I’ve made <a href="https://w.wiki/9JKw">800 Wikipedia contributions</a>, primarily to mathematics articles.</p></div></div></details>
+<section class="catalog about-field" id="about"><div><p class="eyebrow">About</p><h2>Beyond the keyboard</h2><p>Before and alongside my work in software, I worked on diamond drilling rigs in the Yukon and spent years working and volunteering with elementary school children. I also contribute to Wikipedia, mostly on mathematics.</p></div><div class="about-photos"><figure><img src="./field-notes/jared.webp" loading="lazy" alt="Jared Tweed by the water"><figcaption>Jared Tweed</figcaption></figure><figure><img class="drilling-photo" src="./field-notes/yukon.webp" width="326" height="460" loading="lazy" alt="Work on a Yukon diamond drilling rig"><figcaption>On the rig in the Yukon</figcaption></figure></div></section>
+<div class="credentials-strip"><span><strong>Simon Fraser University</strong> · BSc Computer Science, Mathematics Minor</span><a href="https://www.coursera.org/account/accomplishments/verify/2CD48HHHQTQP">Stanford Machine Learning certificate</a><a href="./Jared-Tweed-Resume.pdf">Full résumé</a></div>
+<footer class="site-footer"><div><span class="footer-name">Jared Tweed</span><a href="mailto:jaredtwe@gmail.com">jaredtwe@gmail.com</a></div><nav aria-label="Profiles and résumé"><a href="https://github.com/JaredTweed">GitHub</a><a href="https://www.linkedin.com/in/jared-tweed/">LinkedIn</a><a href="./Jared-Tweed-Resume.pdf">Résumé (PDF)</a></nav></footer>
+</main>
+<dialog id="map-viewer" aria-labelledby="viewer-title"><div class="viewer-bar"><h2 id="viewer-title"></h2><form method="dialog"><button autofocus>Close</button></form></div><img alt="" width="540" height="710"></dialog>
+<script type="module" src="./app.js"></script><script type="module" src="./hands.js"></script><script type="module" src="./panorama.js"></script></body></html>
